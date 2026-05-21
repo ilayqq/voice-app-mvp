@@ -1,0 +1,66 @@
+{
+  "login": {
+    "title": "Вход",
+    "register_title": "Регистрация",
+    "name_placeholder": "Имя (необязательно)",
+    "phone_placeholder": "Номер телефона",
+    "password_placeholder": "Пароль",
+    "login_button": "Войти",
+    "register_button": "Зарегистрироваться",
+    "loading": "Загрузка...",
+    "no_account": "Нет аккаунта? Зарегистрироваться",
+    "have_account": "Уже есть аккаунт? Войти",
+    "error": "Ошибка авторизации"
+  },
+  "nav": {
+    "warehouse": "Склад",
+    "products": "Товары",
+    "incoming": "Приход",
+    "outgoing": "Расход",
+    "profile": "Профиль"
+  },
+  "dashboard": {
+    "title": "Склад",
+    "products": "Товаров",
+    "turnover": "Оборот",
+    "lowStock": "Низкий остаток",
+    "operationsToday": "Операций сегодня",
+    "incomingStock": "Приход товара",
+    "outgoingStock": "Расход товара",
+    "newProduct": "Новый товар",
+    "recentOperations": "Последние операции",
+    "scanProduct": "Сканировать товар",
+    "scanned": "Отсканировано",
+    "barcode": "Штрихкод",
+    "quantityPlaceholder": "Сколько поступило?",
+    "confirmIncoming": "Подтвердить приход",
+    "productNotFound": "Товар с таким штрихкодом не найден",
+    "createNewProduct": "Создать новый товар",
+    "productAdded": "Товар добавлен на склад",
+    "newProductDefaultName": "Новый товар"
+  },
+  "incoming": {
+    "title": "Приход товара",
+    "scan": "Сканировать штрихкод",
+    "search": "Поиск",
+    "searchPlaceholder": "Название или штрихкод...",
+    "product": "Товар",
+    "selectProduct": "Выберите товар",
+    "loading": "Загрузка товаров...",
+    "noProducts": "Товары не найдены",
+    "currentStock": "Текущий остаток",
+    "unit": "шт",
+    "unitHint": "Единица: шт",
+    "quantity": "Количество",
+    "notes": "Примечание",
+    "notesPlaceholder": "Дополнительная информация...",
+    "submit": "Оформить приход",
+    "submitting": "Сохранение...",
+    "fillFields": "Заполните все обязательные поля",
+    "success": "Приход оформлен"
+  },
+  "profile": {
+    "title": "Профиль",
+    "logout": "Выйти"
+  }
+}

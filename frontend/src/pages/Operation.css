@@ -1,0 +1,48 @@
+.operation-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.operation-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label-text {
+  font-weight: 500;
+  font-size: 14px;
+  color: #333;
+}
+
+.form-select,
+.form-input,
+.form-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 16px;
+  font-family: inherit;
+  background: #fff;
+}
+
+.form-textarea {
+  resize: vertical;
+}
+
+.current-stock {
+  background: #e5f4ff;
+  color: #007aff;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.input-hint {
+  font-size: 12px;
+  color: #666;
+  margin-top: -4px;
+}
+

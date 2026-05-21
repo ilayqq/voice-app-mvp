@@ -1,0 +1,66 @@
+{
+  "login": {
+    "title": "Login",
+    "register_title": "Register",
+    "name_placeholder": "Name (optional)",
+    "phone_placeholder": "Phone number",
+    "password_placeholder": "Password",
+    "login_button": "Sign in",
+    "register_button": "Sign up",
+    "loading": "Loading...",
+    "no_account": "No account? Register",
+    "have_account": "Already have an account? Login",
+    "error": "Authorization error"
+  },
+  "nav": {
+    "warehouse": "Warehouse",
+    "products": "Products",
+    "incoming": "Incoming",
+    "outgoing": "Outgoing",
+    "profile": "Profile"
+  },
+  "dashboard": {
+    "title": "Warehouse",
+    "products": "Products",
+    "turnover": "Revenue",
+    "lowStock": "Low stock",
+    "operationsToday": "Operations today",
+    "incomingStock": "Stock in",
+    "outgoingStock": "Stock out",
+    "newProduct": "New product",
+    "recentOperations": "Recent operations",
+    "scanProduct": "Scan product",
+    "scanned": "Scanned",
+    "barcode": "Barcode",
+    "quantityPlaceholder": "How many received?",
+    "confirmIncoming": "Confirm stock in",
+    "productNotFound": "No product found with this barcode",
+    "createNewProduct": "Create new product",
+    "productAdded": "Product added to warehouse",
+    "newProductDefaultName": "New product"
+  },
+  "incoming": {
+    "title": "Stock in",
+    "scan": "Scan barcode",
+    "search": "Search",
+    "searchPlaceholder": "Name or barcode...",
+    "product": "Product",
+    "selectProduct": "Select a product",
+    "loading": "Loading products...",
+    "noProducts": "No products found",
+    "currentStock": "Current stock",
+    "unit": "pcs",
+    "unitHint": "Unit: pcs",
+    "quantity": "Quantity",
+    "notes": "Notes",
+    "notesPlaceholder": "Additional information...",
+    "submit": "Confirm stock in",
+    "submitting": "Saving...",
+    "fillFields": "Fill in all required fields",
+    "success": "Stock in recorded"
+  },
+  "profile": {
+    "title": "Profile",
+    "logout": "Logout"
+  }
+}

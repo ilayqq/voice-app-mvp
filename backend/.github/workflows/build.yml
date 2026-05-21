@@ -1,0 +1,30 @@
+name: build.yml
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.MY_KEY }}
+          script: |
+            cd ${{ secrets.APP_PATH }}
+            
+            echo "Pull latest code"
+            git pull origin master
+            
+            echo "Containers down"
+            docker-compose down
+            
+            echo "Build containers"
+            docker-compose up -d --build
+              
+            echo "DEPLOY $(date)"

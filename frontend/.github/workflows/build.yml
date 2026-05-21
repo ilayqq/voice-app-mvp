@@ -1,0 +1,39 @@
+name: build.yml
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build and deploy on server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.MY_KEY }}
+          script: |
+            cd voice-app-front
+            
+            echo "Pull latest code"
+            git pull origin master
+            
+            echo "Install dependencies"
+            npm i
+            
+            echo "Build project"
+            npm run build
+            
+            rm -rf ../../var/www/dist
+            
+            mv dist ../../var/www/dist
+            
+            echo "DEPLOY $(date)"
