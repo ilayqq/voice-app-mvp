@@ -29,6 +29,9 @@
     "outgoingStock": "Тауар шығуы",
     "newProduct": "Жаңа тауар",
     "recentOperations": "Соңғы операциялар",
+    "noOperations": "Операциялар жоқ",
+    "incomingLabel": "Келу",
+    "outgoingLabel": "Шығу",
     "scanProduct": "Тауарды сканерлеу",
     "scanned": "Сканерленді",
     "barcode": "Штрихкод",
@@ -58,5 +61,28 @@
     "submitting": "Сақталуда...",
     "fillFields": "Міндетті өрістерді толтырыңыз",
     "success": "Келу тіркелді"
+  },
+  "outgoing": {
+    "title": "Тауар шығуы",
+    "scan": "Штрихкодты сканерлеу",
+    "search": "Іздеу",
+    "searchPlaceholder": "Атау немесе штрихкод...",
+    "product": "Тауар",
+    "selectProduct": "Тауарды таңдаңыз",
+    "loading": "Тауарлар жүктелуде...",
+    "noProducts": "Қоймада қалдығы бар тауар жоқ",
+    "stockLabel": "қалдық: {{count}}",
+    "availableStock": "Қолжетімді",
+    "unit": "дана",
+    "unitHint": "Өлшем бірлігі: дана",
+    "quantity": "Саны",
+    "notes": "Ескертпе",
+    "notesPlaceholder": "Қосымша ақпарат...",
+    "submit": "Шығуды растау",
+    "submitting": "Сақталуда...",
+    "fillFields": "Міндетті өрістерді толтырыңыз",
+    "insufficientStock": "Қоймада тауар жеткіліксіз",
+    "noStock": "Бұл тауардың қалдығы жоқ",
+    "success": "Шығу тіркелді"
   }
 }

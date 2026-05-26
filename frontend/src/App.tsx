@@ -10,6 +10,7 @@ import Profile from "./pages/Profile.tsx";
 import Products from "./pages/Products.tsx";
 import ProductDetails from "./pages/ProductDetails.tsx";
 import Incoming from "./pages/Incoming.tsx";
+import Outgoing from "./pages/Outgoing.tsx";
 
 function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -64,6 +65,14 @@ function AppRoutes() {
             element={
                 <ProtectedRoute>
                     <Incoming />
+                </ProtectedRoute>
+            }
+        />
+        <Route
+            path="/outgoing"
+            element={
+                <ProtectedRoute>
+                    <Outgoing />
                 </ProtectedRoute>
             }
         />

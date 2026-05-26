@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import Layout from '../components/Layout.tsx'
-import type { Product } from '../types/index.ts'
+import type { Product, StockMovementResponse } from '../types/index.ts'
 import VoiceRecorder from '../components/VoiceRecorder.tsx'
 import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
@@ -8,21 +8,34 @@ import apiClient from '../services/api.ts'
 import { motion, type Variants} from 'framer-motion'
 import ScannerFlow from "../components/ScannerFlow.tsx";
 
+function isToday(dateStr: string): boolean {
+    const d = new Date(dateStr)
+    const now = new Date()
+    return (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+    )
+}
+
 export default function Dashboard() {
     const { t } = useTranslation()
     const [products, setProducts] = useState<Product[]>([])
+    const [movements, setMovements] = useState<StockMovementResponse[]>([])
 
     useEffect(() => {
         apiClient.getProducts().then(setProducts)
+        apiClient.getStockMovements().then(setMovements).catch(() => {})
     }, [])
 
     const totalProducts = products.length
+    const operationsToday = movements.filter(m => isToday(m.created_at)).length
+    const recentMovements = movements.slice(0, 10)
 
     return (
         <Layout title={t('dashboard.title')}>
             <div className="relative isolate px-6 pt-14 lg:px-8 text-white">
 
-                {/* 🔥 TOP GRADIENT BLUR (как в Login) */}
                 <div
                     aria-hidden="true"
                     className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
@@ -39,7 +52,6 @@ export default function Dashboard() {
                     />
                 </div>
 
-                {/* ✨ CONTENT */}
                 <motion.div
                     initial="hidden"
                     animate="visible"
@@ -49,7 +61,6 @@ export default function Dashboard() {
 
                     <ScannerFlow/>
 
-                    {/* VOICE */}
                     <motion.div
                         variants={itemVariants}
                         className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20"
@@ -57,7 +68,6 @@ export default function Dashboard() {
                         <VoiceRecorder />
                     </motion.div>
 
-                    {/* STATS */}
                     <motion.div
                         variants={staggerVariants}
                         className="grid grid-cols-2 gap-4 sm:grid-cols-4"
@@ -65,10 +75,9 @@ export default function Dashboard() {
                         <StatCard value={totalProducts} label={t('dashboard.products')} />
                         <StatCard value="0 ₸" label={t('dashboard.turnover')} />
                         <StatCard value={0} label={t('dashboard.lowStock')} />
-                        <StatCard value={0} label={t('dashboard.operationsToday')} />
+                        <StatCard value={operationsToday} label={t('dashboard.operationsToday')} />
                     </motion.div>
 
-                    {/* ACTIONS */}
                     <motion.div
                         variants={staggerVariants}
                         className="grid gap-4 sm:grid-cols-3"
@@ -78,18 +87,46 @@ export default function Dashboard() {
                         <ActionButton to="/products">{t('dashboard.newProduct')}</ActionButton>
                     </motion.div>
 
-                    {/* LAST OPS */}
                     <motion.div
                         variants={itemVariants}
-                        className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20"
+                        className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20 space-y-4"
                     >
                         <h2 className="text-lg font-semibold">
                             {t('dashboard.recentOperations')}
                         </h2>
+                        {recentMovements.length === 0 ? (
+                            <p className="text-sm text-gray-400">{t('dashboard.noOperations')}</p>
+                        ) : (
+                            <ul className="divide-y divide-white/10">
+                                {recentMovements.map(m => (
+                                    <li key={m.id} className="flex items-center justify-between py-3 text-sm">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium truncate">
+                                                {m.product_name || m.barcode}
+                                            </p>
+                                            <p className="text-gray-400 text-xs">
+                                                {new Date(m.created_at).toLocaleString()}
+                                                {m.description && ` — ${m.description}`}
+                                            </p>
+                                        </div>
+                                        <span
+                                            className={`ml-4 shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+                                                m.type === 'incoming'
+                                                    ? 'bg-green-500/20 text-green-300'
+                                                    : 'bg-red-500/20 text-red-300'
+                                            }`}
+                                        >
+                                            {m.type === 'incoming'
+                                                ? `+${m.quantity} ${t('dashboard.incomingLabel')}`
+                                                : `-${m.quantity} ${t('dashboard.outgoingLabel')}`}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </motion.div>
                 </motion.div>
 
-                {/* 🔥 BOTTOM GRADIENT BLUR */}
                 <div
                     aria-hidden="true"
                     className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]"
@@ -109,8 +146,6 @@ export default function Dashboard() {
         </Layout>
     )
 }
-
-/* ---------- animations ---------- */
 
 const pageVariants: Variants = {
     hidden: { opacity: 0 },
@@ -133,8 +168,6 @@ const itemVariants: Variants = {
         transition: { duration: 0.4, ease: 'easeOut' },
     },
 }
-
-/* ---------- UI ---------- */
 
 function StatCard({ value, label }: { value: React.ReactNode; label: string }) {
     return (

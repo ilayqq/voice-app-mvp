@@ -1,5 +1,5 @@
 import API_CONFIG from '../config/api'
-import type { Product, InventoryItem, Operation } from '../types'
+import type { Product, InventoryItem, Operation, StockMovementRequest, StockMovementResponse } from '../types'
 
 export interface LoginRequest {
   phone_number: string
@@ -81,7 +81,6 @@ class ApiClient {
     return this.handleResponse<AuthResponse['user']>(response)
   }
 
-  // Обновить профиль (имя, телефон)
   async updateUser(data: UpdateUserRequest): Promise<AuthResponse['user']> {
     const response = await fetch(`${this.baseURL}/users`, {
       method: 'PATCH',
@@ -163,6 +162,22 @@ class ApiClient {
       body: JSON.stringify(operation),
     })
     return this.handleResponse<Operation>(response)
+  }
+
+  async getStockMovements(): Promise<StockMovementResponse[]> {
+    const response = await fetch(`${this.baseURL}/stock-movements`, {
+      headers: this.getHeaders(),
+    })
+    return this.handleResponse<StockMovementResponse[]>(response)
+  }
+
+  async createStockMovement(data: StockMovementRequest): Promise<StockMovementResponse> {
+    const response = await fetch(`${this.baseURL}/stock-movements`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+    return this.handleResponse<StockMovementResponse>(response)
   }
 
   async uploadVoice(blob: Blob): Promise<{ text?: string }> {

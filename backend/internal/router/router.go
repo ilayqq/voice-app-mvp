@@ -6,6 +6,7 @@ import (
 	"voice-app/internal/oauth"
 	"voice-app/internal/product"
 	"voice-app/internal/speech"
+	"voice-app/internal/stockmovement"
 	"voice-app/internal/user"
 	"voice-app/internal/warehouse"
 	"voice-app/middleware"
@@ -23,6 +24,7 @@ func NewRouter(
 	productHandler *product.Handler,
 	warehouseHandler *warehouse.Handler,
 	speechHandler *speech.Handler,
+	stockMovementHandler *stockmovement.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -52,7 +54,7 @@ func NewRouter(
 	{
 		user := api.Group("/users")
 		{
-			user.GET("", middleware.RequireRole("owner"), userHandler.GetUsers)
+			user.GET("", userHandler.GetUsers)
 			user.PATCH("", middleware.RequireRole("owner"), userHandler.UpdateUser)
 		}
 		product := api.Group("/products")
@@ -66,6 +68,11 @@ func NewRouter(
 		{
 			warehouse.GET("", warehouseHandler.GetAll)
 			warehouse.POST("", warehouseHandler.AddWarehouse)
+		}
+		movements := api.Group("/stock-movements")
+		{
+			movements.GET("", stockMovementHandler.GetAll)
+			movements.POST("", stockMovementHandler.Create)
 		}
 		voice := api.Group("/voice")
 		{

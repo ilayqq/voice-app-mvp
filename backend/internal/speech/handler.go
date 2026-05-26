@@ -22,7 +22,7 @@ func (h *Handler) Recognize(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(
 		c.Writer,
 		c.Request.Body,
-		20<<20, // 20 MB
+		20<<20,
 	)
 
 	header, err := c.FormFile("file")

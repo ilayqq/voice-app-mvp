@@ -9,6 +9,7 @@ import (
 	"voice-app/internal/product"
 	router2 "voice-app/internal/router"
 	"voice-app/internal/speech"
+	"voice-app/internal/stockmovement"
 	"voice-app/internal/user"
 	"voice-app/internal/warehouse"
 )
@@ -55,7 +56,11 @@ func main() {
 	speechService := speech.NewService()
 	speechHandler := speech.NewHandler(speechService)
 
-	router := router2.NewRouter(authHandler, oauthHandler, userHandler, productHandler, warehouseHandler, speechHandler)
+	stockMovementRepo := stockmovement.NewRepository()
+	stockMovementService := stockmovement.NewService(stockMovementRepo)
+	stockMovementHandler := stockmovement.NewHandler(stockMovementService)
+
+	router := router2.NewRouter(authHandler, oauthHandler, userHandler, productHandler, warehouseHandler, speechHandler, stockMovementHandler)
 
 	if err := router.Run(":8080"); err != nil {
 		log.Printf("Error starting server: %s", err)

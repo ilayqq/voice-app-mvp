@@ -4,8 +4,7 @@ import { motion, type Variants } from 'framer-motion'
 import Layout from '../components/Layout.tsx'
 import BarcodeScanner from '../components/BarcodeScanner.tsx'
 import apiClient from '../services/api.ts'
-import { useLocalStorage } from '../hooks/useLocalStorage.ts'
-import type { InventoryItem, Operation, Product } from '../types/index.ts'
+import type { Product } from '../types/index.ts'
 
 function productKey(product: Product): string {
     return String(product.id ?? product.barcode)
@@ -15,16 +14,9 @@ function stockFromProduct(product: Product): number {
     return product.stocks?.reduce((sum, s) => sum + s.quantity, 0) ?? 0
 }
 
-function stockFromInventory(product: Product, inventory: InventoryItem[]): number {
-    const item = inventory.find(i => i.productId === productKey(product))
-    return item?.quantity ?? 0
-}
-
 export default function Incoming() {
     const { t } = useTranslation()
     const [products, setProducts] = useState<Product[]>([])
-    const [inventory, setInventory] = useLocalStorage<InventoryItem[]>('inventory', [])
-    const [operations, setOperations] = useLocalStorage<Operation[]>('operations', [])
     const [loading, setLoading] = useState(true)
     const [scanning, setScanning] = useState(false)
     const [search, setSearch] = useState('')
@@ -53,12 +45,7 @@ export default function Incoming() {
 
     const selectedProduct = products.find(p => productKey(p) === selectedProductId)
 
-    const currentStock = selectedProduct
-        ? Math.max(
-              stockFromProduct(selectedProduct),
-              stockFromInventory(selectedProduct, inventory)
-          )
-        : 0
+    const currentStock = selectedProduct ? stockFromProduct(selectedProduct) : 0
 
     const handleScan = async (code: string) => {
         setScanning(false)
@@ -86,7 +73,7 @@ export default function Incoming() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!selectedProduct) return
+        if (!selectedProduct || !selectedProduct.id) return
 
         const qty = parseFloat(quantity)
         if (!qty || qty <= 0) {
@@ -96,34 +83,23 @@ export default function Incoming() {
 
         setSubmitting(true)
         try {
-            const key = productKey(selectedProduct)
-            const operation: Operation = {
-                id: Date.now().toString(),
+            await apiClient.createStockMovement({
+                product_id: selectedProduct.id,
                 type: 'incoming',
-                productId: key,
                 quantity: qty,
-                date: new Date().toISOString(),
-                notes: notes.trim() || undefined,
-            }
+                description: notes.trim() || undefined,
+            })
 
-            setOperations([operation, ...operations])
-
-            const existing = inventory.find(i => i.productId === key)
-            if (existing) {
-                setInventory(
-                    inventory.map(i =>
-                        i.productId === key ? { ...i, quantity: i.quantity + qty } : i
-                    )
-                )
-            } else {
-                setInventory([...inventory, { productId: key, quantity: qty, reserved: 0 }])
-            }
+            const refreshed = await apiClient.getProducts()
+            setProducts(refreshed)
 
             setSelectedProductId('')
             setQuantity('1')
             setNotes('')
             setSearch('')
             alert(t('incoming.success'))
+        } catch (err) {
+            alert(err instanceof Error ? err.message : t('incoming.fillFields'))
         } finally {
             setSubmitting(false)
         }
