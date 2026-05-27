@@ -51,7 +51,7 @@ class ApiClient {
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Ошибка сервера' }))
-      throw new Error(error.message || `HTTP error! status: ${response.status}`)
+      throw new Error(error.message || error.error || `HTTP error! status: ${response.status}`)
     }
     return response.json()
   }

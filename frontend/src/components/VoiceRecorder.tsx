@@ -88,7 +88,7 @@ export default function VoiceRecorder() {
             }
         } catch (e) {
             console.error("Upload failed:", e);
-            alert("Ошибка при отправке аудио на сервер");
+            alert(e instanceof Error ? e.message : "Ошибка при отправке аудио на сервер");
         }
     };
 

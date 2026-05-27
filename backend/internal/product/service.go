@@ -76,6 +76,10 @@ func (s *service) Update(ctx context.Context, barcode string, req dto.ProductReq
 		product.Category = *req.Category
 	}
 
+	if req.Price != nil {
+		product.Price = *req.Price
+	}
+
 	if err := s.repository.Update(ctx, product); err != nil {
 		return nil, err
 	}

@@ -8,6 +8,7 @@ type Product struct {
 	Barcode     string    `json:"barcode" gorm:"unique;not null"`
 	Description string    `json:"description"`
 	Category    string    `json:"category"`
+	Price       float64   `json:"price" gorm:"default:0"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 

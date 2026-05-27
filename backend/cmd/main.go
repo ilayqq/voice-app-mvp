@@ -12,6 +12,8 @@ import (
 	"voice-app/internal/stockmovement"
 	"voice-app/internal/user"
 	"voice-app/internal/warehouse"
+
+	"github.com/joho/godotenv"
 )
 
 //	@title			Voice-app API
@@ -24,10 +26,9 @@ import (
 // @in							header
 // @name						Authorization
 func main() {
-	//err := godotenv.Load(".env")
-	//if err != nil {
-	//	log.Fatal("Error loading .env file")
-	//}
+	if err := godotenv.Load(".env"); err != nil {
+		log.Println("Warning: .env file not found, using system env vars")
+	}
 
 	config.InitDB()
 

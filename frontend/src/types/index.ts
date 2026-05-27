@@ -1,6 +1,7 @@
 export interface ProductStock {
   id?: number
   warehouseID?: number
+  productID?: number
   quantity: number
 }
 
@@ -10,6 +11,7 @@ export interface Product {
   barcode: string
   description?: string
   category?: string
+  price?: number
   imageUrl?: string
   imageFile?: File
   createdAt?: string

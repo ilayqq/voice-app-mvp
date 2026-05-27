@@ -2,10 +2,7 @@ package speech
 
 import (
 	"fmt"
-	"io"
 	"net/http"
-	"os"
-	"voice-app/internal/speech/whisper"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,34 +28,21 @@ func (h *Handler) Recognize(c *gin.Context) {
 		return
 	}
 
-	src, err := header.Open()
+	file, err := header.Open()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot open file"})
 		return
 	}
-	defer src.Close()
-
-	tmp, err := os.CreateTemp("", "whisper-*.wav")
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "temp file error"})
-		return
-	}
-	defer os.Remove(tmp.Name())
-	defer tmp.Close()
-
-	if _, err := io.Copy(tmp, src); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "write error"})
-		return
-	}
+	defer file.Close()
 
 	ctx := c.Request.Context()
 
-	text, err := whisper.RecognizeWithWhisper(ctx, tmp.Name())
+	text, err := h.service.RecognizeSpeech(ctx, file, header)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	fmt.Println(text)
+	fmt.Println("Recognized:", text)
 	c.JSON(http.StatusOK, gin.H{"text": text})
 }

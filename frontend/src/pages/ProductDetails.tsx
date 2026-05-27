@@ -1,28 +1,32 @@
 import { useEffect, useRef, useState } from "react"
 import { useParams, useNavigate } from "react-router-dom"
+import { useTranslation } from "react-i18next"
 import Layout from "../components/Layout"
 import apiClient from "../services/api"
-import type { Product } from "../types"
-import { motion, AnimatePresence, type Variants } from "framer-motion"
+import type { Product, StockMovementResponse } from "../types"
+import { motion, AnimatePresence } from "framer-motion"
 
-/* ─────────────────────────────────────────────
-   EDIT MODAL
-───────────────────────────────────────────── */
+function stockTotal(product: Product): number {
+    return product.stocks?.reduce((sum, s) => sum + s.quantity, 0) ?? 0
+}
+
 function EditModal({
-                       product,
-                       onClose,
-                       onSave,
-                   }: {
+    product,
+    onClose,
+    onSave,
+}: {
     product: Product
     onClose: () => void
     onSave: (updated: Product) => void
 }) {
+    const { t } = useTranslation()
     const [form, setForm] = useState({
         name: product.name,
         barcode: product.barcode,
         category: product.category ?? "",
         description: product.description ?? "",
         imageUrl: product.imageUrl ?? "",
+        price: product.price ?? 0,
     })
     const [preview, setPreview] = useState<string | null>(product.imageUrl ?? null)
     const [saving, setSaving] = useState(false)
@@ -33,7 +37,6 @@ function EditModal({
         if (!file) return
         const url = URL.createObjectURL(file)
         setPreview(url)
-        // В реальном проекте — загрузить файл на сервер и сохранить полученный URL
         setForm(f => ({ ...f, imageUrl: url }))
     }
 
@@ -64,9 +67,8 @@ function EditModal({
                 transition={{ duration: 0.3, ease: "easeOut" }}
                 className="w-full max-w-lg rounded-2xl bg-[#1a1a2e] ring-1 ring-white/15 text-white overflow-hidden"
             >
-                {/* HEADER */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-                    <h2 className="text-lg font-semibold">Редактировать товар</h2>
+                    <h2 className="text-lg font-semibold">{t('products.editTitle')}</h2>
                     <button
                         onClick={onClose}
                         className="rounded-lg p-1.5 text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
@@ -75,10 +77,7 @@ function EditModal({
                     </button>
                 </div>
 
-                {/* BODY */}
                 <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-
-                    {/* IMAGE UPLOAD */}
                     <div
                         onClick={() => fileRef.current?.click()}
                         className="relative w-full h-44 rounded-xl overflow-hidden
@@ -90,31 +89,31 @@ function EditModal({
                                 <img src={preview} alt="preview" className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100
                                                 transition-opacity flex items-center justify-center text-sm font-medium">
-                                    📷 Изменить фото
+                                    📷 {t('products.changePhoto')}
                                 </div>
                             </>
                         ) : (
                             <div className="flex flex-col items-center gap-2 text-gray-400 pointer-events-none">
                                 <span className="text-4xl">📷</span>
-                                <span className="text-sm">Нажмите, чтобы добавить фото</span>
+                                <span className="text-sm">{t('products.addPhoto')}</span>
                             </div>
                         )}
                     </div>
                     <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
 
-                    <Field label="Название" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} />
-                    <Field label="Штрихкод" value={form.barcode} onChange={v => setForm(f => ({ ...f, barcode: v }))} mono />
-                    <Field label="Категория" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} />
-                    <Field label="Описание" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} multiline />
+                    <Field label={t('products.name')} value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} />
+                    <Field label={t('products.barcode')} value={form.barcode} onChange={v => setForm(f => ({ ...f, barcode: v }))} mono />
+                    <Field label={t('products.category')} value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} />
+                    <Field label={t('products.price') + ' (₸)'} value={String(form.price || '')} onChange={v => setForm(f => ({ ...f, price: parseFloat(v) || 0 }))} />
+                    <Field label={t('products.description')} value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} multiline />
                 </div>
 
-                {/* FOOTER */}
                 <div className="flex gap-3 px-6 py-4 border-t border-white/10">
                     <button
                         onClick={onClose}
                         className="flex-1 rounded-xl py-3 font-semibold bg-white/10 hover:bg-white/15 transition-colors"
                     >
-                        Отмена
+                        {t('products.cancel')}
                     </button>
                     <motion.button
                         whileHover={{ scale: 1.02 }}
@@ -124,7 +123,7 @@ function EditModal({
                         className="flex-1 rounded-xl py-3 font-semibold bg-indigo-500
                                    hover:bg-indigo-400 transition-colors disabled:opacity-50"
                     >
-                        {saving ? "Сохранение..." : "✓ Сохранить"}
+                        {saving ? t('products.saving') : t('products.save')}
                     </motion.button>
                 </div>
             </motion.div>
@@ -132,44 +131,76 @@ function EditModal({
     )
 }
 
-/* ─────────────────────────────────────────────
-   PRODUCT DETAILS PAGE
-───────────────────────────────────────────── */
 export default function ProductDetails() {
+    const { t } = useTranslation()
     const { id } = useParams()
     const navigate = useNavigate()
     const [product, setProduct] = useState<Product | null>(null)
+    const [movements, setMovements] = useState<StockMovementResponse[]>([])
     const [loading, setLoading] = useState(true)
     const [deleting, setDeleting] = useState(false)
     const [editOpen, setEditOpen] = useState(false)
+    const [actionType, setActionType] = useState<'incoming' | 'outgoing' | null>(null)
+    const [actionQty, setActionQty] = useState('1')
+    const [actionSubmitting, setActionSubmitting] = useState(false)
+
+    const reload = async () => {
+        if (!id) return
+        const [p, allMov] = await Promise.all([
+            apiClient.getProductByBarcode(id),
+            apiClient.getStockMovements().catch(() => [] as StockMovementResponse[]),
+        ])
+        if (p) {
+            setProduct(p)
+            setMovements(allMov.filter(m => m.barcode === p.barcode || m.product_id === p.id))
+        }
+    }
 
     useEffect(() => {
-        if (!id) return
-        apiClient.getProductByBarcode(id)
-            .then(setProduct)
-            .catch(console.error)
-            .finally(() => setLoading(false))
+        reload().finally(() => setLoading(false))
     }, [id])
 
     const handleDelete = async () => {
         if (!product) return
-        if (confirm("Удалить товар?")) {
+        if (confirm(t('products.deleteConfirm'))) {
             setDeleting(true)
             await apiClient.deleteProduct(product.barcode)
             navigate("/products")
         }
     }
 
+    const handleQuickAction = async () => {
+        if (!product?.id || !actionType) return
+        const qty = parseFloat(actionQty)
+        if (!qty || qty <= 0) return
+
+        setActionSubmitting(true)
+        try {
+            await apiClient.createStockMovement({
+                product_id: product.id,
+                type: actionType,
+                quantity: qty,
+            })
+            setActionType(null)
+            setActionQty('1')
+            await reload()
+        } catch (err) {
+            alert(err instanceof Error ? err.message : 'Error')
+        } finally {
+            setActionSubmitting(false)
+        }
+    }
+
     if (loading) {
         return (
-            <Layout title="Товар" showBack>
+            <Layout title={t('products.detail')} showBack>
                 <div className="flex items-center justify-center pt-32 text-white/50">
                     <motion.div
                         animate={{ opacity: [0.4, 1, 0.4] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
                         className="text-sm tracking-widest uppercase"
                     >
-                        Загрузка...
+                        {t('products.loading')}
                     </motion.div>
                 </div>
             </Layout>
@@ -178,41 +209,31 @@ export default function ProductDetails() {
 
     if (!product) {
         return (
-            <Layout title="Товар" showBack>
+            <Layout title={t('products.detail')} showBack>
                 <div className="flex items-center justify-center pt-32 text-white/50 text-sm">
-                    Товар не найден
+                    {t('products.notFoundSingle')}
                 </div>
             </Layout>
         )
     }
 
+    const stock = stockTotal(product)
+
     return (
         <Layout title={product.name} showBack>
-            <div className="relative isolate px-6 pt-10 lg:px-8 text-white">
+            <div className="relative isolate px-6 pt-10 pb-16 lg:px-8 text-white">
 
-                {/* TOP GRADIENT BLUR */}
-                <div aria-hidden="true" className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-                    <div
-                        style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }}
-                        className="relative left-[calc(50%-11rem)] aspect-1155/678 w-144.5 -translate-x-1/2 rotate-30 bg-linear-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-288.75"
-                    />
-                </div>
+                <GradientTop />
 
-                <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    variants={pageVariants}
-                    className="mx-auto max-w-xl space-y-5"
-                >
-                    {/* PRODUCT IMAGE */}
+                <div className="mx-auto max-w-xl space-y-5">
+
                     {product.imageUrl && (
-                        <motion.div variants={itemVariants} className="w-full h-52 rounded-2xl overflow-hidden ring-1 ring-white/15">
+                        <div className="w-full h-52 rounded-2xl overflow-hidden ring-1 ring-white/15">
                             <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                        </motion.div>
+                        </div>
                     )}
 
-                    {/* HEADER */}
-                    <motion.div variants={itemVariants} className="flex items-center gap-4">
+                    <div className="flex items-center gap-4">
                         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl
                                         bg-indigo-500/20 ring-1 ring-indigo-400/40 text-2xl">
                             📦
@@ -226,53 +247,150 @@ export default function ProductDetails() {
                                 </span>
                             )}
                         </div>
-                    </motion.div>
+                    </div>
 
-                    {/* DETAILS CARD */}
-                    <motion.div variants={itemVariants} className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20 divide-y divide-white/10">
-                        <DetailRow icon="🔖" label="Штрихкод" value={product.barcode} mono />
-                        {product.category && <DetailRow icon="🗂" label="Категория" value={product.category} />}
-                        {product.description && <DetailRow icon="📝" label="Описание" value={product.description} />}
-                    </motion.div>
+                    <div className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20 divide-y divide-white/10">
+                        <DetailRow icon="🔖" label={t('products.barcodeLabel')} value={product.barcode} mono />
+                        {product.category && <DetailRow icon="🗂" label={t('products.categoryLabel')} value={product.category} />}
+                        {product.description && <DetailRow icon="📝" label={t('products.descriptionLabel')} value={product.description} />}
+                    </div>
 
-                    {/* STATS */}
-                    <motion.div variants={staggerVariants} className="grid grid-cols-2 gap-4">
-                        <StatCard label="Остаток" value="—" />
-                        <StatCard label="Цена" value="—" />
-                    </motion.div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="rounded-xl bg-white/10 p-5 ring-1 ring-white/20">
+                            <div className="text-2xl font-semibold">{stock} {t('products.unit')}</div>
+                            <div className="text-sm text-gray-300">{t('products.stock')}</div>
+                        </div>
+                        <div className="rounded-xl bg-white/10 p-5 ring-1 ring-white/20">
+                            <div className="text-2xl font-semibold">{product.price ? `${product.price} ₸` : '—'}</div>
+                            <div className="text-sm text-gray-300">{t('products.price')}</div>
+                        </div>
+                    </div>
 
-                    {/* ACTIONS */}
-                    <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4 pb-10">
-                        <motion.button
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
+                    {/* Quick stock actions */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <button
+                            onClick={() => setActionType(actionType === 'incoming' ? null : 'incoming')}
+                            className={`rounded-xl py-3 font-semibold transition-colors ${
+                                actionType === 'incoming'
+                                    ? 'bg-green-500 hover:bg-green-400'
+                                    : 'bg-green-600/30 ring-1 ring-green-500/30 hover:bg-green-600/50'
+                            }`}
+                        >
+                            + {t('products.addStock')}
+                        </button>
+                        <button
+                            onClick={() => setActionType(actionType === 'outgoing' ? null : 'outgoing')}
+                            disabled={stock <= 0}
+                            className={`rounded-xl py-3 font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                                actionType === 'outgoing'
+                                    ? 'bg-red-500 hover:bg-red-400'
+                                    : 'bg-red-600/30 ring-1 ring-red-500/30 hover:bg-red-600/50'
+                            }`}
+                        >
+                            - {t('products.removeStock')}
+                        </button>
+                    </div>
+
+                    <AnimatePresence>
+                        {actionType && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
+                            >
+                                <div className={`rounded-xl p-4 ring-1 space-y-3 ${
+                                    actionType === 'incoming'
+                                        ? 'bg-green-500/10 ring-green-400/30'
+                                        : 'bg-red-500/10 ring-red-400/30'
+                                }`}>
+                                    <input
+                                        type="number"
+                                        value={actionQty}
+                                        onChange={e => setActionQty(e.target.value)}
+                                        min="1"
+                                        max={actionType === 'outgoing' ? stock : undefined}
+                                        step="1"
+                                        placeholder={t('products.quantityPlaceholder')}
+                                        className="w-full rounded-lg bg-white/10 px-4 py-2.5 ring-1 ring-white/20
+                                        focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                                    />
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => { setActionType(null); setActionQty('1') }}
+                                            className="flex-1 rounded-lg bg-white/10 py-2.5 font-semibold
+                                            hover:bg-white/15 transition"
+                                        >
+                                            {t('products.cancel')}
+                                        </button>
+                                        <button
+                                            onClick={handleQuickAction}
+                                            disabled={actionSubmitting || !actionQty || parseFloat(actionQty) <= 0}
+                                            className={`flex-1 rounded-lg py-2.5 font-semibold transition disabled:opacity-50 ${
+                                                actionType === 'incoming'
+                                                    ? 'bg-green-600 hover:bg-green-500'
+                                                    : 'bg-red-600 hover:bg-red-500'
+                                            }`}
+                                        >
+                                            {actionSubmitting ? '...' : t('products.confirm')}
+                                        </button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Movement history */}
+                    <div className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20 space-y-4">
+                        <h2 className="text-lg font-semibold">{t('products.movementHistory')}</h2>
+                        {movements.length === 0 ? (
+                            <p className="text-sm text-gray-400">{t('products.noMovements')}</p>
+                        ) : (
+                            <ul className="divide-y divide-white/10">
+                                {movements.map(m => (
+                                    <li key={m.id} className="flex items-center justify-between py-3 text-sm">
+                                        <div>
+                                            <p className="text-gray-400 text-xs">
+                                                {new Date(m.created_at).toLocaleString()}
+                                            </p>
+                                            {m.description && (
+                                                <p className="text-gray-300 text-xs mt-0.5">{m.description}</p>
+                                            )}
+                                        </div>
+                                        <span className={`shrink-0 ml-4 rounded-full px-3 py-1 text-xs font-semibold ${
+                                            m.type === 'incoming'
+                                                ? 'bg-green-500/20 text-green-300'
+                                                : 'bg-red-500/20 text-red-300'
+                                        }`}>
+                                            {m.type === 'incoming' ? `+${m.quantity}` : `-${m.quantity}`}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    {/* Edit / Delete */}
+                    <div className="grid grid-cols-2 gap-4 pb-6">
+                        <button
                             onClick={() => setEditOpen(true)}
                             className="rounded-xl bg-indigo-500 py-3.5 font-semibold hover:bg-indigo-400 transition-colors"
                         >
-                            ✏️ Редактировать
-                        </motion.button>
-                        <motion.button
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
+                            {t('products.edit')}
+                        </button>
+                        <button
                             onClick={handleDelete}
                             disabled={deleting}
                             className="rounded-xl bg-rose-500/80 py-3.5 font-semibold hover:bg-rose-500 transition-colors disabled:opacity-50"
                         >
-                            {deleting ? "Удаление..." : "🗑 Удалить"}
-                        </motion.button>
-                    </motion.div>
-                </motion.div>
-
-                {/* BOTTOM GRADIENT BLUR */}
-                <div aria-hidden="true" className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">
-                    <div
-                        style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }}
-                        className="relative left-[calc(50%+3rem)] aspect-1155/678 w-144.5 -translate-x-1/2 bg-linear-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-288.75"
-                    />
+                            {deleting ? t('products.deleting') : t('products.delete')}
+                        </button>
+                    </div>
                 </div>
+
+                <GradientBottom />
             </div>
 
-            {/* EDIT MODAL */}
             <AnimatePresence>
                 {editOpen && (
                     <EditModal
@@ -289,26 +407,33 @@ export default function ProductDetails() {
     )
 }
 
-/* ---------- animations ---------- */
-
-const pageVariants: Variants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-}
-const staggerVariants: Variants = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.08 } },
-}
-const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 16 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+function GradientTop() {
+    return (
+        <div aria-hidden className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
+            <div
+                style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }}
+                className="relative left-[calc(50%-11rem)] aspect-1155/678 w-144.5 -translate-x-1/2 rotate-30
+                bg-linear-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%-30rem)] sm:w-288.75"
+            />
+        </div>
+    )
 }
 
-/* ---------- UI helpers ---------- */
+function GradientBottom() {
+    return (
+        <div aria-hidden className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">
+            <div
+                style={{ clipPath: 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)' }}
+                className="relative left-[calc(50%+3rem)] aspect-1155/678 w-144.5 -translate-x-1/2
+                bg-linear-to-tr from-[#ff80b5] to-[#9089fc] opacity-30 sm:left-[calc(50%+36rem)] sm:w-288.75"
+            />
+        </div>
+    )
+}
 
 function Field({
-                   label, value, onChange, mono, multiline,
-               }: {
+    label, value, onChange, mono, multiline,
+}: {
     label: string
     value: string
     onChange: (v: string) => void
@@ -339,18 +464,5 @@ function DetailRow({ icon, label, value, mono }: { icon: string; label: string; 
                 <span className={`text-sm font-medium ${mono ? "font-mono text-indigo-300" : ""}`}>{value}</span>
             </div>
         </div>
-    )
-}
-
-function StatCard({ label, value }: { label: string; value: string }) {
-    return (
-        <motion.div
-            variants={itemVariants}
-            whileHover={{ scale: 1.03 }}
-            className="rounded-xl bg-white/10 p-5 ring-1 ring-white/20"
-        >
-            <div className="text-2xl font-semibold">{value}</div>
-            <div className="text-sm text-gray-300">{label}</div>
-        </motion.div>
     )
 }

@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import Layout from '../components/Layout.tsx'
 import type { Product, StockMovementResponse } from '../types/index.ts'
 import VoiceRecorder from '../components/VoiceRecorder.tsx'
@@ -28,9 +27,13 @@ export default function Dashboard() {
         apiClient.getStockMovements().then(setMovements).catch(() => {})
     }, [])
 
+    const [page, setPage] = useState(0)
+    const perPage = 5
+
     const totalProducts = products.length
     const operationsToday = movements.filter(m => isToday(m.created_at)).length
-    const recentMovements = movements.slice(0, 10)
+    const totalPages = Math.max(1, Math.ceil(movements.length / perPage))
+    const pagedMovements = movements.slice(page * perPage, (page + 1) * perPage)
 
     return (
         <Layout title={t('dashboard.title')}>
@@ -79,50 +82,67 @@ export default function Dashboard() {
                     </motion.div>
 
                     <motion.div
-                        variants={staggerVariants}
-                        className="grid gap-4 sm:grid-cols-3"
-                    >
-                        <ActionButton to="/incoming">{t('dashboard.incomingStock')}</ActionButton>
-                        <ActionButton to="/outgoing">{t('dashboard.outgoingStock')}</ActionButton>
-                        <ActionButton to="/products">{t('dashboard.newProduct')}</ActionButton>
-                    </motion.div>
-
-                    <motion.div
                         variants={itemVariants}
                         className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20 space-y-4"
                     >
                         <h2 className="text-lg font-semibold">
                             {t('dashboard.recentOperations')}
                         </h2>
-                        {recentMovements.length === 0 ? (
+                        {movements.length === 0 ? (
                             <p className="text-sm text-gray-400">{t('dashboard.noOperations')}</p>
                         ) : (
-                            <ul className="divide-y divide-white/10">
-                                {recentMovements.map(m => (
-                                    <li key={m.id} className="flex items-center justify-between py-3 text-sm">
-                                        <div className="min-w-0 flex-1">
-                                            <p className="font-medium truncate">
-                                                {m.product_name || m.barcode}
-                                            </p>
-                                            <p className="text-gray-400 text-xs">
-                                                {new Date(m.created_at).toLocaleString()}
-                                                {m.description && ` — ${m.description}`}
-                                            </p>
-                                        </div>
-                                        <span
-                                            className={`ml-4 shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-                                                m.type === 'incoming'
-                                                    ? 'bg-green-500/20 text-green-300'
-                                                    : 'bg-red-500/20 text-red-300'
-                                            }`}
+                            <>
+                                <ul className="divide-y divide-white/10">
+                                    {pagedMovements.map(m => (
+                                        <li key={m.id} className="flex items-center justify-between py-3 text-sm">
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-medium truncate">
+                                                    {m.product_name || m.barcode}
+                                                </p>
+                                                <p className="text-gray-400 text-xs">
+                                                    {new Date(m.created_at).toLocaleString()}
+                                                    {m.description && ` — ${m.description}`}
+                                                </p>
+                                            </div>
+                                            <span
+                                                className={`ml-4 shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
+                                                    m.type === 'incoming'
+                                                        ? 'bg-green-500/20 text-green-300'
+                                                        : 'bg-red-500/20 text-red-300'
+                                                }`}
+                                            >
+                                                {m.type === 'incoming'
+                                                    ? `+${m.quantity} ${t('dashboard.incomingLabel')}`
+                                                    : `-${m.quantity} ${t('dashboard.outgoingLabel')}`}
+                                            </span>
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-between pt-2">
+                                        <button
+                                            onClick={() => setPage(p => Math.max(0, p - 1))}
+                                            disabled={page === 0}
+                                            className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium
+                                            hover:bg-white/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                                         >
-                                            {m.type === 'incoming'
-                                                ? `+${m.quantity} ${t('dashboard.incomingLabel')}`
-                                                : `-${m.quantity} ${t('dashboard.outgoingLabel')}`}
+                                            ← {t('dashboard.prev')}
+                                        </button>
+                                        <span className="text-sm text-gray-400">
+                                            {page + 1} / {totalPages}
                                         </span>
-                                    </li>
-                                ))}
-                            </ul>
+                                        <button
+                                            onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                                            disabled={page >= totalPages - 1}
+                                            className="rounded-lg bg-white/10 px-4 py-2 text-sm font-medium
+                                            hover:bg-white/15 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                        >
+                                            {t('dashboard.next')} →
+                                        </button>
+                                    </div>
+                                )}
+                            </>
                         )}
                     </motion.div>
                 </motion.div>
@@ -182,19 +202,3 @@ function StatCard({ value, label }: { value: React.ReactNode; label: string }) {
     )
 }
 
-function ActionButton({ to, children }: { to: string; children: React.ReactNode }) {
-    return (
-        <motion.div
-            variants={itemVariants}
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-        >
-            <Link
-                to={to}
-                className="block rounded-md bg-indigo-500 py-3 text-center font-semibold hover:bg-indigo-400"
-            >
-                {children}
-            </Link>
-        </motion.div>
-    )
-}
