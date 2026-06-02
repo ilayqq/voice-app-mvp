@@ -90,7 +90,7 @@ export default function Employees() {
 
   return (
     <Layout title={t('employees.title')} showBack>
-      <div className="relative isolate px-6 pt-6 lg:px-8 text-white">
+      <div className="relative isolate px-6 pt-8 lg:px-8 text-white">
         <div className="mx-auto max-w-xl space-y-4">
           <p className="text-sm text-gray-400">{t('employees.subtitle')}</p>
 

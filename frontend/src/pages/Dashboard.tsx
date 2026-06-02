@@ -56,7 +56,7 @@ export default function Dashboard() {
 
     return (
         <Layout title={t('dashboard.title')}>
-            <div className="relative isolate px-6 pt-14 lg:px-8 text-white">
+            <div className="relative isolate px-6 pt-8 lg:px-8 text-white">
 
                 <div
                     aria-hidden="true"

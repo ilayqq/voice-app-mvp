@@ -231,7 +231,7 @@ export default function ProductDetails() {
 
     return (
         <Layout title={product.name} showBack>
-            <div className="relative isolate px-6 pt-10 pb-16 lg:px-8 text-white">
+            <div className="relative isolate px-6 pt-8 pb-16 lg:px-8 text-white">
 
                 <GradientTop />
 

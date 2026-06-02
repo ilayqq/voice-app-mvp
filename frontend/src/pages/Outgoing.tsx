@@ -126,7 +126,7 @@ export default function Outgoing() {
 
     return (
         <Layout title={t('outgoing.title')} showBack>
-            <div className="relative isolate px-6 pt-12 pb-16 lg:px-8 text-white">
+            <div className="relative isolate px-6 pt-8 pb-16 lg:px-8 text-white">
                 <GradientTop />
 
                 <motion.div
