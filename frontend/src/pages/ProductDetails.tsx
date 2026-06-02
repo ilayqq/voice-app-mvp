@@ -170,6 +170,15 @@ export default function ProductDetails() {
         reload().finally(() => setLoading(false))
     }, [id])
 
+    useEffect(() => {
+        if (!loading && !product && id) {
+            navigate('/products', {
+                state: { create: true, barcode: decodeURIComponent(id) },
+                replace: true,
+            })
+        }
+    }, [loading, product, id, navigate])
+
     const handleDelete = async () => {
         if (!product) return
         if (confirm(t('products.deleteConfirm'))) {
@@ -221,7 +230,7 @@ export default function ProductDetails() {
         return (
             <Layout title={t('products.detail')} showBack>
                 <div className="flex items-center justify-center pt-32 text-white/50 text-sm">
-                    {t('products.notFoundSingle')}
+                    {t('products.loading')}
                 </div>
             </Layout>
         )

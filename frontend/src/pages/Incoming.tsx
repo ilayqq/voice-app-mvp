@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, type Variants } from 'framer-motion'
 import Layout from '../components/Layout.tsx'
@@ -16,6 +17,7 @@ function stockFromProduct(product: Product): number {
 
 export default function Incoming() {
     const { t } = useTranslation()
+    const navigate = useNavigate()
     const [products, setProducts] = useState<Product[]>([])
     const [loading, setLoading] = useState(true)
     const [scanning, setScanning] = useState(false)
@@ -65,9 +67,11 @@ export default function Incoming() {
                     return exists ? prev : [...prev, product]
                 })
                 setSelectedProductId(productKey(product))
+            } else {
+                navigate('/products', { state: { create: true, barcode: code } })
             }
         } catch {
-            setSelectedProductId('')
+            navigate('/products', { state: { create: true, barcode: code } })
         }
     }
 

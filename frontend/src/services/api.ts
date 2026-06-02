@@ -296,18 +296,17 @@ class ApiClient {
     return this.handleResponse<StockMovementResponse>(response)
   }
 
-  async uploadVoice(blob: Blob): Promise<{ text?: string }> {
+  async uploadVoice(blob: Blob, filename = 'voice.webm'): Promise<{ text?: string }> {
     const fd = new FormData()
-    fd.append('file', blob, 'voice.wav')
-    const headers = this.getHeaders()
-    if (headers instanceof Headers) {
-      headers.delete('Content-Type')
-    } else if (typeof headers === 'object' && 'Content-Type' in headers) {
-      delete (headers as Record<string, string>)['Content-Type']
+    fd.append('file', blob, filename)
+    const token = localStorage.getItem('auth_token')
+    const headers: Record<string, string> = {}
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
     }
     const response = await fetch(`${this.baseURL}/voice/upload`, {
       method: 'POST',
-      headers: headers,
+      headers,
       body: fd,
     })
     return this.handleResponse(response)

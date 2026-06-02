@@ -1,5 +1,6 @@
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+import { QrCode, X } from "lucide-react"
 import type { Product } from "../types"
 import BarcodeScanner from "./BarcodeScanner"
 import { resolveImageUrl } from "../utils/media"
@@ -81,27 +82,60 @@ export default function ProductForm({
                     value={formData.barcode}
                     onChange={e => setFormData({ ...formData, barcode: e.target.value })}
                     required
-                    className="flex-1 rounded-lg bg-white/10 px-4 py-3 ring-1 ring-white/20
+                    className="min-w-0 flex-1 rounded-lg bg-white/10 px-4 py-3 ring-1 ring-white/20
                     placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 font-mono"
                 />
                 <button
                     type="button"
                     onClick={() => setScanning(true)}
-                    className="shrink-0 rounded-lg bg-indigo-500 px-4 py-3 font-semibold
-                    hover:bg-indigo-400 transition"
+                    aria-label={t('products.scanBarcode')}
+                    title={t('products.scanBarcode')}
+                    className="inline-flex h-[46px] w-[46px] shrink-0 items-center justify-center
+                    rounded-lg bg-indigo-500 text-white ring-1 ring-indigo-400/30
+                    hover:bg-indigo-400 active:scale-95 transition"
                 >
-                    📷 {t('products.scanBarcode')}
+                    <QrCode size={20} aria-hidden />
                 </button>
             </div>
 
             {scanning && (
-                <BarcodeScanner
-                    onScan={code => {
-                        setFormData(f => ({ ...f, barcode: code }))
-                        setScanning(false)
-                    }}
-                    onClose={() => setScanning(false)}
-                />
+                <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4">
+                    <div
+                        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+                        onClick={() => setScanning(false)}
+                        aria-hidden
+                    />
+                    <div
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={t('products.scanBarcode')}
+                        className="relative w-full max-w-md rounded-2xl bg-slate-950 ring-1 ring-white/15 shadow-2xl overflow-hidden"
+                    >
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+                            <div className="flex items-center gap-2 text-sm font-semibold">
+                                <QrCode size={18} className="text-indigo-300" aria-hidden />
+                                {t('products.scanBarcode')}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setScanning(false)}
+                                className="rounded-lg p-2 text-gray-300 hover:text-white hover:bg-white/10 transition"
+                                aria-label={t('products.cancel')}
+                            >
+                                <X size={18} aria-hidden />
+                            </button>
+                        </div>
+                        <div className="p-4">
+                            <BarcodeScanner
+                                onScan={code => {
+                                    setFormData(f => ({ ...f, barcode: code }))
+                                    setScanning(false)
+                                }}
+                                onClose={() => setScanning(false)}
+                            />
+                        </div>
+                    </div>
+                </div>
             )}
 
             <input

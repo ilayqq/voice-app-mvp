@@ -1,68 +1,36 @@
 package speech
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"os"
+	"path/filepath"
+
+	"voice-app/internal/speech/whisper"
 )
 
 func recognizeWithWhisper(ctx context.Context, file multipart.File, filename string) (string, error) {
-	apiKey := os.Getenv("API_KEY")
-	if apiKey == "" {
-		return "", fmt.Errorf("api key not set")
+	ext := filepath.Ext(filename)
+	if ext == "" {
+		ext = ".webm"
 	}
 
-	var b bytes.Buffer
-	writer := multipart.NewWriter(&b)
-
-	fw, err := writer.CreateFormFile("file", filename)
+	tmp, err := os.CreateTemp("", "voice-*"+ext)
 	if err != nil {
+		return "", fmt.Errorf("create temp file: %w", err)
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+
+	if _, err := io.Copy(tmp, file); err != nil {
+		tmp.Close()
+		return "", fmt.Errorf("save audio: %w", err)
+	}
+	if err := tmp.Close(); err != nil {
 		return "", err
 	}
 
-	_, err = io.Copy(fw, file)
-	if err != nil {
-		return "", err
-	}
-
-	writer.WriteField("model", "whisper-1")
-	writer.Close()
-
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.openai.com/v1/audio/transcriptions", &b)
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+apiKey)
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("API error: %s", string(body))
-	}
-
-	// Простой парсинг ответа
-	type response struct {
-		Text string `json:"text"`
-	}
-
-	var r response
-	err = json.NewDecoder(resp.Body).Decode(&r)
-	if err != nil {
-		return "", err
-	}
-
-	return r.Text, nil
+	return whisper.RecognizeWithWhisper(ctx, tmpPath)
 }

@@ -1,12 +1,18 @@
-import whisper
+import os
 import sys
 
-# print("Python script работает")
+import whisper
 
-model = whisper.load_model("medium")
-
+model_name = os.environ.get("WHISPER_MODEL", "medium")
+language = os.environ.get("WHISPER_LANGUAGE", "auto").strip().lower()
 audio_path = sys.argv[1]
 
-result = model.transcribe(audio_path, language="kk")
+model = whisper.load_model(model_name)
 
-print(result["text"])
+if language in ("", "auto"):
+    # Auto-detect: Kazakh, Russian, English and other supported languages
+    result = model.transcribe(audio_path)
+else:
+    result = model.transcribe(audio_path, language=language)
+
+print(result["text"].strip())

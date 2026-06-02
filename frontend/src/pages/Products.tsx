@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Layout from '../components/Layout.tsx'
 import type { Product } from '../types/index.ts'
 import apiClient from '../services/api.ts'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import ProductForm from '../components/ProductForm.tsx'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import ProductThumbnail from '../components/ProductThumbnail.tsx'
 import { formatMoney } from '../utils/format.ts'
 import {
@@ -15,6 +15,10 @@ import {
     Search,
     Trash2,
 } from 'lucide-react'
+import {
+    OPEN_PRODUCT_CREATE_EVENT,
+    type OpenProductCreateDetail,
+} from '../utils/productCreate.ts'
 
 const LOW_STOCK_THRESHOLD = 5
 
@@ -30,6 +34,8 @@ export default function Products() {
     const [showForm, setShowForm] = useState(false)
     const [editingProduct, setEditingProduct] = useState<Product | null>(null)
     const navigate = useNavigate()
+    const location = useLocation()
+    const handledCreateBarcodeRef = useRef<string | null>(null)
 
     useEffect(() => {
         apiClient
@@ -38,6 +44,38 @@ export default function Products() {
             .catch(() => {})
             .finally(() => setLoading(false))
     }, [])
+
+    const openCreateForm = useCallback((barcode?: string) => {
+        if (barcode) {
+            handledCreateBarcodeRef.current = barcode
+            setEditingProduct({ barcode, name: '' } as Product)
+        } else {
+            handledCreateBarcodeRef.current = null
+            setEditingProduct(null)
+        }
+        setShowForm(true)
+    }, [])
+
+    useEffect(() => {
+        const onOpenFromScan = (event: Event) => {
+            const barcode = (event as CustomEvent<OpenProductCreateDetail>).detail?.barcode
+            if (barcode) {
+                openCreateForm(barcode)
+            }
+        }
+
+        window.addEventListener(OPEN_PRODUCT_CREATE_EVENT, onOpenFromScan)
+        return () => window.removeEventListener(OPEN_PRODUCT_CREATE_EVENT, onOpenFromScan)
+    }, [openCreateForm])
+
+    useEffect(() => {
+        const state = location.state as { create?: boolean; barcode?: string } | null
+        if (!state?.create || !state.barcode) return
+        if (handledCreateBarcodeRef.current === state.barcode) return
+
+        openCreateForm(state.barcode)
+        window.history.replaceState(null, '', location.pathname + location.search)
+    }, [location.state, location.pathname, location.search, openCreateForm])
 
     const filteredProducts = useMemo(() => {
         const q = searchTerm.trim().toLowerCase()
@@ -55,11 +93,6 @@ export default function Products() {
             await apiClient.deleteProduct(product.barcode)
             setProducts(prev => prev.filter(p => p.id !== product.id))
         }
-    }
-
-    const openCreateForm = () => {
-        setEditingProduct(null)
-        setShowForm(true)
     }
 
     return (
@@ -100,7 +133,7 @@ export default function Products() {
                                     type="button"
                                     whileHover={{ scale: 1.02 }}
                                     whileTap={{ scale: 0.98 }}
-                                    onClick={openCreateForm}
+                                    onClick={() => openCreateForm()}
                                     className="inline-flex items-center justify-center gap-2
                                     rounded-lg bg-indigo-500 px-5 py-2.5 font-semibold
                                     hover:bg-indigo-400 transition shrink-0"
@@ -131,34 +164,41 @@ export default function Products() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: 12 }}
                                 transition={{ duration: 0.3, ease: 'easeOut' }}
-                                className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20"
+                                className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20 mb-24"
                             >
                                 <ProductForm
+                                    key={editingProduct?.id ?? editingProduct?.barcode ?? 'new'}
                                     product={editingProduct}
                                     onSave={async (product, imageFile) => {
-                                        let image_url = product.image_url
-                                        if (imageFile) {
-                                            image_url = await apiClient.uploadProductImage(imageFile)
+                                        try {
+                                            let image_url = product.image_url
+                                            if (imageFile) {
+                                                image_url = await apiClient.uploadProductImage(imageFile)
+                                            }
+                                            const payload = { ...product, image_url }
+                                            if (editingProduct?.id) {
+                                                const updated = await apiClient.updateProduct(
+                                                    String(editingProduct.barcode),
+                                                    payload,
+                                                )
+                                                setProducts(prev =>
+                                                    prev.map(p => (p.id === updated.id ? updated : p)),
+                                                )
+                                            } else {
+                                                const created = await apiClient.createProduct(payload)
+                                                setProducts(prev => [...prev, created])
+                                            }
+                                            setShowForm(false)
+                                            setEditingProduct(null)
+                                            handledCreateBarcodeRef.current = null
+                                        } catch (err) {
+                                            alert(err instanceof Error ? err.message : 'Error')
                                         }
-                                        const payload = { ...product, image_url }
-                                        if (editingProduct) {
-                                            const updated = await apiClient.updateProduct(
-                                                String(editingProduct.barcode),
-                                                payload,
-                                            )
-                                            setProducts(prev =>
-                                                prev.map(p => (p.id === updated.id ? updated : p)),
-                                            )
-                                        } else {
-                                            const created = await apiClient.createProduct(payload)
-                                            setProducts(prev => [...prev, created])
-                                        }
-                                        setShowForm(false)
-                                        setEditingProduct(null)
                                     }}
                                     onCancel={() => {
                                         setShowForm(false)
                                         setEditingProduct(null)
+                                        handledCreateBarcodeRef.current = null
                                     }}
                                 />
                             </motion.div>
@@ -166,7 +206,13 @@ export default function Products() {
                     </AnimatePresence>
 
                     {!showForm && (
-                        <motion.div variants={itemVariants} className="rounded-xl bg-white/10 ring-1 ring-white/20 overflow-hidden">
+                        <motion.div
+                            key="product-list"
+                            initial={{ opacity: 0, y: 16 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.35, ease: 'easeOut' }}
+                            className="rounded-xl bg-white/10 ring-1 ring-white/20 overflow-hidden"
+                        >
                             {loading ? (
                                 <div className="p-8 space-y-4">
                                     {[1, 2, 3].map(i => (
@@ -196,7 +242,7 @@ export default function Products() {
                                     {!searchTerm.trim() && (
                                         <button
                                             type="button"
-                                            onClick={openCreateForm}
+                                            onClick={() => openCreateForm()}
                                             className="mt-2 inline-flex items-center gap-2 rounded-lg
                                             bg-indigo-500 px-4 py-2 text-sm font-semibold hover:bg-indigo-400 transition"
                                         >

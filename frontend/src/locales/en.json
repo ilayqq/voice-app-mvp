@@ -37,9 +37,23 @@
   "nav": {
     "warehouse": "Warehouse",
     "products": "Products",
-    "record": "Record",
+    "record": "Voice",
     "scan": "Scan",
     "profile": "Profile"
+  },
+  "voice": {
+    "start": "Start recording",
+    "stop": "Stop recording",
+    "tapToRecord": "Tap to record",
+    "tapToStop": "Tap to stop",
+    "processing": "Processing...",
+    "micError": "Could not access microphone",
+    "uploadError": "Failed to upload audio",
+    "tooShort": "Recording is too short. Speak longer and try again.",
+    "quotaError": "Speech recognition is unavailable: OpenAI API quota exceeded. Add billing or update the API key on the server.",
+    "apiKeyError": "Invalid OpenAI API key on the server. Check the API_KEY environment variable.",
+    "whisperError": "Local speech recognition is unavailable. Ensure Python, ffmpeg, and openai-whisper are installed on the server.",
+    "recognized": "Recognized text: {{text}}"
   },
   "dashboard": {
     "title": "Warehouse",

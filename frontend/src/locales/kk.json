@@ -37,9 +37,23 @@
   "nav": {
     "warehouse": "Қойма",
     "products": "Тауарлар",
-    "record": "Record",
+    "record": "Дауыс",
     "scan": "Сканерлеу",
     "profile": "Профиль"
+  },
+  "voice": {
+    "start": "Жазбаны бастау",
+    "stop": "Жазбаны тоқтату",
+    "tapToRecord": "Жазу үшін басыңыз",
+    "tapToStop": "Тоқтату үшін басыңыз",
+    "processing": "Өңдеуде...",
+    "micError": "Микрофонға кіру мүмкін болмады",
+    "uploadError": "Аудио жіберу қатесі",
+    "tooShort": "Жазба тым қысқа. Ұзағырақ сөйлеп, қайта көріңіз.",
+    "quotaError": "Speech tanу qizmeti qoljetimsiz: OpenAI API limiti tausti. Serverde balans nemese API_KEY jangartynyz.",
+    "apiKeyError": "Serverdegi OpenAI API kilti qate. API_KEY ozgeruinsin tekseriniz.",
+    "whisperError": "Jergilikti speech tanu qoljetimsiz. Serverde Python, ffmpeg jane openai-whisper ornatiulganin tekseriniz.",
+    "recognized": "Танылған мәтін: {{text}}"
   },
   "dashboard": {
     "title": "Қойма",

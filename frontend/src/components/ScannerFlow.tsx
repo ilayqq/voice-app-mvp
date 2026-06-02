@@ -1,16 +1,17 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+import { useNavigate } from "react-router-dom"
 import apiClient from "../services/api.ts"
 import type { Product } from "../types/index.ts"
 import BarcodeScanner from "./BarcodeScanner.tsx";
 
 export default function ScannerFlow() {
     const { t } = useTranslation()
+    const navigate = useNavigate()
     const [scanning, setScanning] = useState(false)
     const [foundProduct, setFoundProduct] = useState<Product | null>(null)
     const [barcode, setBarcode] = useState("")
     const [qty, setQty] = useState(1)
-    const [notFound, setNotFound] = useState(false)
 
     const handleScan = async (code: string) => {
         setBarcode(code)
@@ -21,14 +22,12 @@ export default function ScannerFlow() {
 
             if (product) {
                 setFoundProduct(product)
-                setNotFound(false)
             } else {
-                setFoundProduct(null)
-                setNotFound(true)
+                navigate('/products', { state: { create: true, barcode: code } })
             }
         } catch (error) {
             console.error("Failed to fetch product by barcode:", error)
-            setNotFound(true)
+            navigate('/products', { state: { create: true, barcode: code } })
         }
     }
 
@@ -44,23 +43,10 @@ export default function ScannerFlow() {
         reset()
     }
 
-    const handleCreateProduct = async () => {
-        if (!barcode) return
-
-        const created = await apiClient.createProduct({
-            name: t('dashboard.newProductDefaultName'),
-            barcode: barcode,
-        })
-
-        setFoundProduct(created)
-        setNotFound(false)
-    }
-
     const reset = () => {
         setFoundProduct(null)
         setBarcode("")
         setQty(1)
-        setNotFound(false)
     }
 
     return (
@@ -108,19 +94,6 @@ export default function ScannerFlow() {
                         className="rounded-md bg-green-500 px-4 py-2"
                     >
                         {t('dashboard.confirmIncoming')}
-                    </button>
-                </div>
-            )}
-
-            {notFound && (
-                <div className="rounded-xl bg-red-500/10 p-6 ring-1 ring-red-500/30 space-y-4">
-                    <p>{t('dashboard.productNotFound')}</p>
-
-                    <button
-                        className="rounded-md bg-indigo-500 px-4 py-2"
-                        onClick={handleCreateProduct}
-                    >
-                        ➕ {t('dashboard.createNewProduct')}
                     </button>
                 </div>
             )}
