@@ -1,0 +1,65 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  frontend:
+    name: Frontend deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy frontend over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.MY_KEY }}
+          script: |
+            cd voice-app-mvp/frontend
+            
+            echo "Pull latest code"
+            git pull origin master
+            
+            echo "Install dependencies"
+            npm i
+            
+            echo "Build project"
+            npm run build
+            
+            rm -rf ../../../var/www/dist
+            mv dist ../../../var/www/dist
+            
+            echo "FRONTEND DEPLOY $(date)"
+
+  backend:
+    name: Backend deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy backend over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.MY_KEY }}
+          script: |
+            cd ${{ secrets.APP_PATH }}
+            
+            echo "Pull latest code"
+            git pull origin master
+            
+            echo "Containers down"
+            docker-compose down
+            
+            echo "Build containers"
+            docker-compose up -d --build
+              
+            echo "BACKEND DEPLOY $(date)"
