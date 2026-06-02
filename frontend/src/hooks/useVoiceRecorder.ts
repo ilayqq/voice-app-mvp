@@ -109,8 +109,10 @@ export function useVoiceRecorder() {
             const code = e instanceof Error ? e.message : ''
             if (code === 'insufficient_quota') {
                 alert(t('voice.quotaError'))
-            } else if (code === 'invalid_api_key') {
+            } else if (code === 'invalid_api_key' || code === 'api_key_not_set') {
                 alert(t('voice.apiKeyError'))
+            } else if (code === 'empty_transcription') {
+                alert(t('voice.tooShort'))
             } else if (code.includes('whisper')) {
                 alert(t('voice.whisperError'))
             } else {
