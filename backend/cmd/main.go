@@ -2,9 +2,12 @@ package main
 
 import (
 	"log"
+	"os"
 	"voice-app/config"
 	_ "voice-app/docs"
+	"voice-app/internal/analytics"
 	auth2 "voice-app/internal/auth"
+	"voice-app/internal/company"
 	"voice-app/internal/oauth"
 	"voice-app/internal/product"
 	router2 "voice-app/internal/router"
@@ -30,17 +33,24 @@ func main() {
 		log.Println("Warning: .env file not found, using system env vars")
 	}
 
-	config.InitDB()
+	if err := os.MkdirAll("uploads/products", 0755); err != nil {
+		log.Fatalf("Failed to create uploads dir: %s", err)
+	}
 
+	config.InitDB()
 	config.InitRedis()
 	config.InitGoogleOauth()
 
 	userRepo := user.NewRepository()
-	authService := auth2.NewService(userRepo)
+	companyRepo := company.NewRepository()
+	companyService := company.NewService(companyRepo, userRepo)
+	companyHandler := company.NewHandler(companyService)
+
+	authService := auth2.NewService(userRepo, companyService)
 	authHandler := auth2.NewHandler(authService)
 
 	oauthRepo := oauth.NewRepository(config.DB)
-	oauthService := oauth.NewService(config.GoogleOauthConfig, config.DB, userRepo, oauthRepo)
+	oauthService := oauth.NewService(config.GoogleOauthConfig, config.DB, userRepo, oauthRepo, companyService)
 	oauthHandler := oauth.NewHandler(oauthService)
 
 	userService := user.NewService(userRepo)
@@ -61,7 +71,21 @@ func main() {
 	stockMovementService := stockmovement.NewService(stockMovementRepo)
 	stockMovementHandler := stockmovement.NewHandler(stockMovementService)
 
-	router := router2.NewRouter(authHandler, oauthHandler, userHandler, productHandler, warehouseHandler, speechHandler, stockMovementHandler)
+	analyticsRepo := analytics.NewRepository()
+	analyticsService := analytics.NewService(analyticsRepo)
+	analyticsHandler := analytics.NewHandler(analyticsService)
+
+	router := router2.NewRouter(
+		authHandler,
+		oauthHandler,
+		userHandler,
+		productHandler,
+		warehouseHandler,
+		speechHandler,
+		stockMovementHandler,
+		companyHandler,
+		analyticsHandler,
+	)
 
 	if err := router.Run(":8080"); err != nil {
 		log.Printf("Error starting server: %s", err)

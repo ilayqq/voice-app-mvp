@@ -1,7 +1,8 @@
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { Product } from "../types"
 import BarcodeScanner from "./BarcodeScanner"
+import { resolveImageUrl } from "../utils/media"
 
 export default function ProductForm({
     product,
@@ -9,26 +10,62 @@ export default function ProductForm({
     onCancel,
 }: {
     product: Product | null
-    onSave: (product: Product) => void
+    onSave: (product: Product, imageFile?: File) => void | Promise<void>
     onCancel: () => void
 }) {
     const { t } = useTranslation()
+    const fileRef = useRef<HTMLInputElement>(null)
     const [formData, setFormData] = useState({
         name: product?.name || "",
         barcode: product?.barcode || "",
         category: product?.category || "",
         description: product?.description || "",
         price: product?.price ?? 0,
+        image_url: product?.image_url || product?.imageUrl || "",
     })
+    const [imageFile, setImageFile] = useState<File | undefined>()
+    const [preview, setPreview] = useState<string | null>(
+        resolveImageUrl(product?.image_url || product?.imageUrl) ?? null
+    )
     const [scanning, setScanning] = useState(false)
+
+    const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+        setImageFile(file)
+        setPreview(URL.createObjectURL(file))
+    }
 
     const submit = (e: React.FormEvent) => {
         e.preventDefault()
-        onSave({ ...formData })
+        onSave({ ...formData, image_url: formData.image_url || undefined }, imageFile)
     }
 
     return (
         <form onSubmit={submit} className="space-y-4">
+            <div
+                onClick={() => fileRef.current?.click()}
+                className="relative w-full h-40 rounded-xl overflow-hidden
+                           bg-white/5 ring-1 ring-white/15 cursor-pointer
+                           hover:bg-white/10 transition-colors flex items-center justify-center"
+            >
+                {preview ? (
+                    <>
+                        <img src={preview} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100
+                                        transition-opacity flex items-center justify-center text-sm font-medium">
+                            📷 {t('products.changePhoto')}
+                        </div>
+                    </>
+                ) : (
+                    <div className="flex flex-col items-center gap-2 text-gray-400 pointer-events-none">
+                        <span className="text-4xl">📷</span>
+                        <span className="text-sm">{t('products.addPhoto')}</span>
+                    </div>
+                )}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleImage} />
+
             <input
                 placeholder={t('products.name')}
                 value={formData.name}

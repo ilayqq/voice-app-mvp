@@ -78,3 +78,24 @@ func (h *Handler) UpdateUser(c *gin.Context) {
 
 	c.JSON(http.StatusOK, mapper.MapUserToDTO(*user))
 }
+
+func (h *Handler) ChangePassword(c *gin.Context) {
+	phoneNumber, exists := c.Get("phone_number")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	var req dto.ChangePasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
+		return
+	}
+
+	if err := h.service.ChangePassword(phoneNumber.(string), req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "password updated"})
+}

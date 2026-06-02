@@ -5,6 +5,7 @@ import Layout from "../components/Layout"
 import apiClient from "../services/api"
 import type { Product, StockMovementResponse } from "../types"
 import { motion, AnimatePresence } from "framer-motion"
+import { resolveImageUrl } from "../utils/media"
 
 function stockTotal(product: Product): number {
     return product.stocks?.reduce((sum, s) => sum + s.quantity, 0) ?? 0
@@ -25,26 +26,35 @@ function EditModal({
         barcode: product.barcode,
         category: product.category ?? "",
         description: product.description ?? "",
-        imageUrl: product.imageUrl ?? "",
+        image_url: product.image_url || product.imageUrl || "",
         price: product.price ?? 0,
     })
-    const [preview, setPreview] = useState<string | null>(product.imageUrl ?? null)
+    const [imageFile, setImageFile] = useState<File | undefined>()
+    const [preview, setPreview] = useState<string | null>(
+        resolveImageUrl(product.image_url || product.imageUrl) ?? null
+    )
     const [saving, setSaving] = useState(false)
     const fileRef = useRef<HTMLInputElement>(null)
 
     const handleImage = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
-        const url = URL.createObjectURL(file)
-        setPreview(url)
-        setForm(f => ({ ...f, imageUrl: url }))
+        setImageFile(file)
+        setPreview(URL.createObjectURL(file))
     }
 
     const handleSubmit = async () => {
         if (!product.id) return
         setSaving(true)
         try {
-            const updated = await apiClient.updateProduct(String(product.barcode), form)
+            let image_url = form.image_url
+            if (imageFile) {
+                image_url = await apiClient.uploadProductImage(imageFile)
+            }
+            const updated = await apiClient.updateProduct(String(product.barcode), {
+                ...form,
+                image_url,
+            })
             onSave(updated)
         } finally {
             setSaving(false)
@@ -227,9 +237,13 @@ export default function ProductDetails() {
 
                 <div className="mx-auto max-w-xl space-y-5">
 
-                    {product.imageUrl && (
+                    {resolveImageUrl(product.image_url || product.imageUrl) && (
                         <div className="w-full h-52 rounded-2xl overflow-hidden ring-1 ring-white/15">
-                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                            <img
+                                src={resolveImageUrl(product.image_url || product.imageUrl)}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                     )}
 

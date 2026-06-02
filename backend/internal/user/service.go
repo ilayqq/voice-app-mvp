@@ -1,14 +1,18 @@
 package user
 
 import (
+	"errors"
 	"voice-app/domain"
 	"voice-app/dto"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Service interface {
 	GetAll() ([]domain.User, error)
 	GetByPhoneNumber(phoneNumber string) (*domain.User, error)
 	Update(phoneNumber string, req dto.UserRequest) (*domain.User, error)
+	ChangePassword(phoneNumber string, req dto.ChangePasswordRequest) error
 }
 
 type service struct {
@@ -56,4 +60,23 @@ func (s *service) Update(phoneNumber string, req dto.UserRequest) (*domain.User,
 		return nil, err
 	}
 	return user, nil
+}
+
+func (s *service) ChangePassword(phoneNumber string, req dto.ChangePasswordRequest) error {
+	user, err := s.repository.GetByPhoneNumber(phoneNumber)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.CurrentPassword)); err != nil {
+		return errors.New("invalid current password")
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	user.Password = string(hash)
+	return s.repository.Update(user)
 }

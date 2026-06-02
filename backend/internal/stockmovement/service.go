@@ -9,8 +9,8 @@ import (
 )
 
 type Service interface {
-	GetAll() ([]dto.StockMovementResponse, error)
-	Create(req dto.StockMovementRequest, userID uint) (*dto.StockMovementResponse, error)
+	GetAll(companyID uint) ([]dto.StockMovementResponse, error)
+	Create(req dto.StockMovementRequest, userID, companyID uint) (*dto.StockMovementResponse, error)
 }
 
 type service struct {
@@ -21,8 +21,8 @@ func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-func (s *service) GetAll() ([]dto.StockMovementResponse, error) {
-	movements, err := s.repo.GetAll()
+func (s *service) GetAll(companyID uint) ([]dto.StockMovementResponse, error) {
+	movements, err := s.repo.GetAllByCompany(companyID)
 	if err != nil {
 		return nil, err
 	}
@@ -33,20 +33,31 @@ func (s *service) GetAll() ([]dto.StockMovementResponse, error) {
 	return result, nil
 }
 
-func (s *service) Create(req dto.StockMovementRequest, userID uint) (*dto.StockMovementResponse, error) {
+func (s *service) Create(req dto.StockMovementRequest, userID, companyID uint) (*dto.StockMovementResponse, error) {
+	ok, err := s.repo.ProductBelongsToCompany(req.ProductID, companyID)
+	if err != nil || !ok {
+		return nil, errors.New("product not found in your company")
+	}
+
 	warehouseID := req.WarehouseID
 	if warehouseID == 0 {
-		w, err := s.repo.GetFirstWarehouse()
+		w, err := s.repo.GetFirstWarehouseByCompany(companyID)
 		if err != nil {
 			w = &domain.Warehouse{
-				Name:    "Default",
-				OwnerID: userID,
+				Name:      "Основной склад",
+				CompanyID: companyID,
+				OwnerID:   userID,
 			}
 			if err := s.repo.CreateWarehouse(w); err != nil {
 				return nil, errors.New("failed to create default warehouse")
 			}
 		}
 		warehouseID = w.ID
+	} else {
+		belongs, err := s.repo.WarehouseBelongsToCompany(warehouseID, companyID)
+		if err != nil || !belongs {
+			return nil, errors.New("warehouse not found in your company")
+		}
 	}
 
 	stock, err := s.repo.GetStockByProductAndWarehouse(req.ProductID, warehouseID)
@@ -109,6 +120,8 @@ func toResponse(m domain.StockMovement) dto.StockMovementResponse {
 		if m.Stock.Product.ID != 0 {
 			resp.ProductName = m.Stock.Product.Name
 			resp.Barcode = m.Stock.Product.Barcode
+			resp.UnitPrice = m.Stock.Product.Price
+			resp.Amount = float64(m.Quantity) * m.Stock.Product.Price
 		}
 	}
 	return resp

@@ -6,6 +6,11 @@ type ProductRequest struct {
 	Description *string  `json:"description"`
 	Category    *string  `json:"category"`
 	Price       *float64 `json:"price"`
+	ImageURL    *string  `json:"image_url"`
+}
+
+type ImageUploadResponse struct {
+	ImageURL string `json:"image_url"`
 }
 
 type ProductResponse struct {

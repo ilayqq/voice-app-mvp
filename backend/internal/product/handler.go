@@ -7,6 +7,7 @@ import (
 	"time"
 	"voice-app/domain"
 	"voice-app/dto"
+	"voice-app/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,26 +20,19 @@ func NewHandler(service Service) *Handler {
 	return &Handler{service}
 }
 
-// GetAll godoc
-//
-//	@Summary		Get products
-//	@Description	Get all products
-//	@Tags			products
-//	@Param			barcode	query		string	false	"Product barcode"
-//	@Success		200	{array}		domain.Product
-//	@Failure		401	{object}	map[string]string
-//	@Failure		403	{object}	map[string]string
-//	@Failure		500	{object}	map[string]string
-//	@Router			/api/v1/products [get]
-//	@Security		BearerAuth
 func (h *Handler) GetAll(c *gin.Context) {
+	companyID, ok := middleware.GetCompanyID(c)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"error": "no company access"})
+		return
+	}
+
 	if barcode := c.Query("barcode"); barcode != "" {
-		product, err := h.service.GetByBarcode(barcode)
+		product, err := h.service.GetByBarcode(companyID, barcode)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "product not found"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "product not found"})
 			return
 		}
-
 		c.JSON(http.StatusOK, product)
 		return
 	}
@@ -49,7 +43,7 @@ func (h *Handler) GetAll(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid warehouse_id"})
 			return
 		}
-		products, err := h.service.GetByWarehouseId(int(warehouseID))
+		products, err := h.service.GetByWarehouseId(companyID, int(warehouseID))
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 			return
@@ -58,99 +52,95 @@ func (h *Handler) GetAll(c *gin.Context) {
 		return
 	}
 
-	products, err := h.service.GetAll()
+	products, err := h.service.GetAll(companyID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
-
 	c.JSON(http.StatusOK, products)
 }
 
-// AddProduct godoc
-//
-//	@Summary		Add product
-//	@Description	Add new product
-//	@Tags			products
-//	@Param			data	body		dto.ProductRequest	true	"Product data"
-//	@Success		200		{array}		domain.Product
-//	@Failure		401		{object}	domain.ErrorResponse
-//	@Failure		403		{object}	domain.ErrorResponse
-//	@Failure		500		{object}	domain.ErrorResponse
-//	@Router			/api/v1/products [post]
-//	@Security		BearerAuth
 func (h *Handler) AddProduct(c *gin.Context) {
+	companyID, ok := middleware.GetCompanyID(c)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"error": "no company access"})
+		return
+	}
+
 	var product domain.Product
 	if err := c.ShouldBindJSON(&product); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
 		return
 	}
 
-	createdProduct, err := h.service.Create(product)
+	createdProduct, err := h.service.Create(companyID, product)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
-
 	c.JSON(http.StatusCreated, createdProduct)
 }
 
-// UpdateProduct godoc
-//
-//	@Summary		Update product
-//	@Description	Update product
-//	@Tags			products
-//	@Param			barcode	query		string				true	"Product barcode"
-//	@Param			data	body		dto.ProductRequest	true	"Product data"
-//	@Success		200		{object}	dto.ProductRequest
-//	@Failure		500		{object}	domain.ErrorResponse
-//	@Router			/api/v1/products [patch]
-//	@Security		BearerAuth
 func (h *Handler) UpdateProduct(c *gin.Context) {
-	barcode := c.Query("barcode")
-	//barcode, err := strconv.ParseInt(c.Param("barcode"), 10, 64)
-	//if err != nil {
-	//	c.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
-	//	return
-	//}
+	companyID, ok := middleware.GetCompanyID(c)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"error": "no company access"})
+		return
+	}
 
+	barcode := c.Query("barcode")
 	var product dto.ProductRequest
 	if err := c.ShouldBindJSON(&product); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "bad request"})
 		return
 	}
 
-	//product.Barcode = barcode
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	updated, err := h.service.Update(ctx, barcode, product)
+	updated, err := h.service.Update(ctx, companyID, barcode, product)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
 		return
 	}
-
 	c.JSON(http.StatusOK, updated)
 }
 
-// DeleteProduct godoc
-//
-//	@Summary		Delete product
-//	@Description	Delete product
-//	@Tags			products
-//	@Param			id	query		string				false	"Product id"
-//	@Param			barcode	query		string				false	"Product barcode"
-//	@Success		200		{object}	dto.ProductRequest
-//	@Failure		500		{object}	domain.ErrorResponse
-//	@Router			/api/v1/products [delete]
-//	@Security		BearerAuth
 func (h *Handler) DeleteProduct(c *gin.Context) {
-	barcode := c.Query("barcode")
-	if err := h.service.Delete(barcode); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+	companyID, ok := middleware.GetCompanyID(c)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"error": "no company access"})
 		return
 	}
 
+	barcode := c.Query("barcode")
+	if err := h.service.Delete(companyID, barcode); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"message": "product deleted"})
+}
+
+func (h *Handler) UploadImage(c *gin.Context) {
+	companyID, ok := middleware.GetCompanyID(c)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"error": "no company access"})
+		return
+	}
+
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxImageSize+1024)
+
+	header, err := c.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "file required"})
+		return
+	}
+
+	imageURL, err := SaveProductImage(companyID, header)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ImageUploadResponse{ImageURL: imageURL})
 }

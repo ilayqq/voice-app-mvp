@@ -7,7 +7,8 @@ type UserResponse struct {
 	Email       *string `gorm:"unique" json:"email"`
 	Picture     string  `gorm:"not null; default:''" json:"picture"`
 
-	RoleName []string `json:"roles"`
+	RoleName    []string         `json:"roles"`
+	Company     *CompanyResponse `json:"company,omitempty"`
 }
 
 type UserRequest struct {
@@ -15,4 +16,9 @@ type UserRequest struct {
 	PhoneNumber *string `json:"phone_number"`
 	Email       *string `json:"email"`
 	Picture     *string `json:"picture"`
+}
+
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password" binding:"required"`
+	NewPassword     string `json:"new_password" binding:"required,min=6"`
 }

@@ -9,6 +9,7 @@ export default function Login() {
   const [phoneNumber, setPhoneNumber] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [companyName, setCompanyName] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { login, register, isAuthenticated } = useAuth()
@@ -29,7 +30,12 @@ export default function Login() {
       if (isLogin) {
         await login(phoneNumber, password)
       } else {
-        await register(phoneNumber, password, name || undefined)
+        if (!companyName.trim()) {
+          setError(t('login.company_required'))
+          setLoading(false)
+          return
+        }
+        await register(phoneNumber, password, name, companyName.trim())
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('login.error'))
@@ -62,13 +68,23 @@ export default function Login() {
                 className="mx-auto mt-8 w-full max-w-sm space-y-3 sm:space-y-4"
             >
               {!isLogin && (
-                  <input
-                      type="text"
-                      placeholder={t("login.name_placeholder")}
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full rounded-md bg-white/10 px-4 py-2 text-white placeholder-gray-400 outline-none ring-1 ring-white/20 focus:ring-indigo-500"
-                  />
+                  <>
+                    <input
+                        type="text"
+                        placeholder={t("login.name_placeholder")}
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full rounded-md bg-white/10 px-4 py-2 text-white placeholder-gray-400 outline-none ring-1 ring-white/20 focus:ring-indigo-500"
+                    />
+                    <input
+                        type="text"
+                        placeholder={t("login.company_placeholder") + " *"}
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        required
+                        className="w-full rounded-md bg-white/10 px-4 py-2 text-white placeholder-gray-400 outline-none ring-1 ring-white/20 focus:ring-indigo-500"
+                    />
+                  </>
               )}
 
               <input

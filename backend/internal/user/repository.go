@@ -12,6 +12,7 @@ type Repository interface {
 	Create(user *domain.User) error
 	Exist(phoneNumber string) (*domain.User, error)
 	GetAll() ([]domain.User, error)
+	GetByID(id uint) (*domain.User, error)
 	GetByPhoneNumber(phoneNumber string) (*domain.User, error)
 	Update(user *domain.User) error
 }
@@ -44,6 +45,12 @@ func (r *repository) GetAll() ([]domain.User, error) {
 	}
 
 	return users, nil
+}
+
+func (r *repository) GetByID(id uint) (*domain.User, error) {
+	var user domain.User
+	result := config.DB.Preload("Roles").First(&user, id)
+	return &user, result.Error
 }
 
 func (r *repository) GetByPhoneNumber(phoneNumber string) (*domain.User, error) {

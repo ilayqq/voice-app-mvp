@@ -1,37 +1,56 @@
 import Layout from '../components/Layout.tsx'
-import type { Product, StockMovementResponse } from '../types/index.ts'
-import VoiceRecorder from '../components/VoiceRecorder.tsx'
+import type { StockMovementResponse, AnalyticsSummary } from '../types/index.ts'
 import { useTranslation } from 'react-i18next'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import apiClient from '../services/api.ts'
 import { motion, type Variants} from 'framer-motion'
-import ScannerFlow from "../components/ScannerFlow.tsx";
+import { formatMoney } from '../utils/format.ts'
 
-function isToday(dateStr: string): boolean {
-    const d = new Date(dateStr)
-    const now = new Date()
-    return (
-        d.getFullYear() === now.getFullYear() &&
-        d.getMonth() === now.getMonth() &&
-        d.getDate() === now.getDate()
-    )
-}
+const DASHBOARD_REFRESH_MS = 3000
 
 export default function Dashboard() {
     const { t } = useTranslation()
-    const [products, setProducts] = useState<Product[]>([])
     const [movements, setMovements] = useState<StockMovementResponse[]>([])
+    const [summary, setSummary] = useState<AnalyticsSummary | null>(null)
+
+    const refreshDashboard = useCallback(async () => {
+        try {
+            const [summaryData, movementsData] = await Promise.all([
+                apiClient.getAnalyticsSummary(),
+                apiClient.getStockMovements(),
+            ])
+            setSummary(summaryData)
+            setMovements(movementsData)
+        } catch {
+            // keep last successful data on transient errors
+        }
+    }, [])
 
     useEffect(() => {
-        apiClient.getProducts().then(setProducts)
-        apiClient.getStockMovements().then(setMovements).catch(() => {})
-    }, [])
+        void refreshDashboard()
+
+        const interval = setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                void refreshDashboard()
+            }
+        }, DASHBOARD_REFRESH_MS)
+
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                void refreshDashboard()
+            }
+        }
+        document.addEventListener('visibilitychange', onVisibilityChange)
+
+        return () => {
+            clearInterval(interval)
+            document.removeEventListener('visibilitychange', onVisibilityChange)
+        }
+    }, [refreshDashboard])
 
     const [page, setPage] = useState(0)
     const perPage = 5
 
-    const totalProducts = products.length
-    const operationsToday = movements.filter(m => isToday(m.created_at)).length
     const totalPages = Math.max(1, Math.ceil(movements.length / perPage))
     const pagedMovements = movements.slice(page * perPage, (page + 1) * perPage)
 
@@ -59,26 +78,30 @@ export default function Dashboard() {
                     initial="hidden"
                     animate="visible"
                     variants={pageVariants}
-                    className="mx-auto max-w-6xl space-y-10"
+                    className="mx-auto max-w-6xl space-y-6"
                 >
-
-                    <ScannerFlow/>
-
-                    <motion.div
-                        variants={itemVariants}
-                        className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20"
-                    >
-                        <VoiceRecorder />
-                    </motion.div>
 
                     <motion.div
                         variants={staggerVariants}
                         className="grid grid-cols-2 gap-4 sm:grid-cols-4"
                     >
-                        <StatCard value={totalProducts} label={t('dashboard.products')} />
-                        <StatCard value="0 ₸" label={t('dashboard.turnover')} />
-                        <StatCard value={0} label={t('dashboard.lowStock')} />
-                        <StatCard value={operationsToday} label={t('dashboard.operationsToday')} />
+                        <StatCard
+                            value={summary?.products_count ?? '—'}
+                            label={t('dashboard.products')}
+                        />
+                        <StatCard
+                            value={summary ? formatMoney(summary.turnover_today) : '—'}
+                            label={t('dashboard.turnover')}
+                            subtitle={summary ? t('dashboard.turnoverMonth', { amount: formatMoney(summary.turnover_month) }) : undefined}
+                        />
+                        <StatCard
+                            value={summary?.low_stock_count ?? '—'}
+                            label={t('dashboard.lowStock')}
+                        />
+                        <StatCard
+                            value={summary?.operations_today ?? '—'}
+                            label={t('dashboard.operationsToday')}
+                        />
                     </motion.div>
 
                     <motion.div
@@ -94,7 +117,7 @@ export default function Dashboard() {
                             <>
                                 <ul className="divide-y divide-white/10">
                                     {pagedMovements.map(m => (
-                                        <li key={m.id} className="flex items-center justify-between py-3 text-sm">
+                                        <li key={m.id} className="flex items-center justify-between gap-3 py-3 text-sm">
                                             <div className="min-w-0 flex-1">
                                                 <p className="font-medium truncate">
                                                     {m.product_name || m.barcode}
@@ -104,17 +127,24 @@ export default function Dashboard() {
                                                     {m.description && ` — ${m.description}`}
                                                 </p>
                                             </div>
-                                            <span
-                                                className={`ml-4 shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${
-                                                    m.type === 'incoming'
-                                                        ? 'bg-green-500/20 text-green-300'
-                                                        : 'bg-red-500/20 text-red-300'
-                                                }`}
-                                            >
-                                                {m.type === 'incoming'
-                                                    ? `+${m.quantity} ${t('dashboard.incomingLabel')}`
-                                                    : `-${m.quantity} ${t('dashboard.outgoingLabel')}`}
-                                            </span>
+                                            <div className="shrink-0 text-right space-y-1">
+                                                <span
+                                                    className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+                                                        m.type === 'incoming'
+                                                            ? 'bg-green-500/20 text-green-300'
+                                                            : 'bg-red-500/20 text-red-300'
+                                                    }`}
+                                                >
+                                                    {m.type === 'incoming'
+                                                        ? `+${m.quantity} ${t('dashboard.incomingLabel')}`
+                                                        : `-${m.quantity} ${t('dashboard.outgoingLabel')}`}
+                                                </span>
+                                                {(m.amount ?? 0) > 0 && (
+                                                    <p className="text-xs text-gray-300 font-mono">
+                                                        {formatMoney(m.amount!)}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </li>
                                     ))}
                                 </ul>
@@ -145,6 +175,40 @@ export default function Dashboard() {
                             </>
                         )}
                     </motion.div>
+
+                    {summary && (
+                        <motion.div
+                            variants={itemVariants}
+                            className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20"
+                        >
+                            <h2 className="text-lg font-semibold mb-4">{t('dashboard.turnoverDetails')}</h2>
+                            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                <TurnoverRow
+                                    label={t('dashboard.outgoingToday')}
+                                    value={formatMoney(summary.outgoing_today)}
+                                    variant="outgoing"
+                                />
+                                <TurnoverRow
+                                    label={t('dashboard.incomingToday')}
+                                    value={formatMoney(summary.incoming_today)}
+                                    variant="incoming"
+                                />
+                                <TurnoverRow
+                                    label={t('dashboard.outgoingTotal')}
+                                    value={formatMoney(summary.outgoing_value)}
+                                    variant="outgoing"
+                                />
+                                <TurnoverRow
+                                    label={t('dashboard.incomingTotal')}
+                                    value={formatMoney(summary.incoming_value)}
+                                    variant="incoming"
+                                />
+                            </div>
+                            <p className="mt-4 text-xs text-gray-400">
+                                {t('dashboard.inventoryValue')}: {formatMoney(summary.inventory_value)}
+                            </p>
+                        </motion.div>
+                    )}
                 </motion.div>
 
                 <div
@@ -189,7 +253,15 @@ const itemVariants: Variants = {
     },
 }
 
-function StatCard({ value, label }: { value: React.ReactNode; label: string }) {
+function StatCard({
+    value,
+    label,
+    subtitle,
+}: {
+    value: React.ReactNode
+    label: string
+    subtitle?: string
+}) {
     return (
         <motion.div
             variants={itemVariants}
@@ -198,7 +270,29 @@ function StatCard({ value, label }: { value: React.ReactNode; label: string }) {
         >
             <div className="text-2xl font-semibold">{value}</div>
             <div className="text-sm text-gray-300">{label}</div>
+            {subtitle && <div className="text-xs text-gray-500 mt-1">{subtitle}</div>}
         </motion.div>
     )
 }
 
+function TurnoverRow({
+    label,
+    value,
+    variant,
+}: {
+    label: string
+    value: string
+    variant: 'incoming' | 'outgoing'
+}) {
+    const colors =
+        variant === 'incoming'
+            ? 'bg-green-500/10 ring-green-500/30 text-green-200'
+            : 'bg-red-500/10 ring-red-500/30 text-red-200'
+
+    return (
+        <div className={`rounded-xl p-4 ring-1 ${colors}`}>
+            <div className="text-xs opacity-80 mb-1">{label}</div>
+            <div className="text-xl font-semibold">{value}</div>
+        </div>
+    )
+}

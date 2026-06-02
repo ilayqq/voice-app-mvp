@@ -1,5 +1,12 @@
 import API_CONFIG from '../config/api'
-import type { Product, InventoryItem, Operation, StockMovementRequest, StockMovementResponse } from '../types'
+import type {
+  Product,
+  InventoryItem,
+  Operation,
+  StockMovementRequest,
+  StockMovementResponse,
+  AnalyticsSummary,
+} from '../types'
 
 export interface LoginRequest {
   phone_number: string
@@ -9,21 +16,53 @@ export interface LoginRequest {
 export interface RegisterRequest {
   phone_number: string
   password: string
-  name?: string
+  full_name?: string
+  company_name: string
+}
+
+export interface CompanyInfo {
+  id: number
+  name: string
+  role: 'owner' | 'manager' | 'employee'
+}
+
+export interface UserInfo {
+  id: number
+  full_name?: string
+  phone_number: string
+  roles?: string[]
+  company?: CompanyInfo
 }
 
 export interface AuthResponse {
   token: string
-  user: {
-    id: string
-    phone_number: string
-    name?: string
-  }
+  user: UserInfo
+  company: CompanyInfo
+}
+
+export interface CompanyEmployee {
+  id: number
+  user_id: number
+  full_name: string
+  phone_number: string
+  role: string
+}
+
+export interface AddEmployeeRequest {
+  phone_number: string
+  password: string
+  full_name?: string
+  role: 'manager' | 'employee'
 }
 
 export interface UpdateUserRequest {
   full_name?: string
   phone_number?: string
+}
+
+export interface ChangePasswordRequest {
+  current_password: string
+  new_password: string
 }
 
 class ApiClient {
@@ -74,20 +113,90 @@ class ApiClient {
     return this.handleResponse<AuthResponse>(response)
   }
 
-  async getUserByPhone(phone_number: string): Promise<AuthResponse['user']> {
+  async getCompany(): Promise<CompanyInfo> {
+    const response = await fetch(`${this.baseURL}/company/me`, {
+      headers: this.getHeaders(),
+    })
+    return this.handleResponse<CompanyInfo>(response)
+  }
+
+  async getEmployees(): Promise<CompanyEmployee[]> {
+    const response = await fetch(`${this.baseURL}/company/employees`, {
+      headers: this.getHeaders(),
+    })
+    return this.handleResponse<CompanyEmployee[]>(response)
+  }
+
+  async addEmployee(data: AddEmployeeRequest): Promise<CompanyEmployee> {
+    const response = await fetch(`${this.baseURL}/company/employees`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+    return this.handleResponse<CompanyEmployee>(response)
+  }
+
+  async updateEmployeeRole(memberId: number, role: string): Promise<void> {
+    const response = await fetch(`${this.baseURL}/company/employees/${memberId}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ role }),
+    })
+    await this.handleResponse(response)
+  }
+
+  async removeEmployee(memberId: number): Promise<void> {
+    const response = await fetch(`${this.baseURL}/company/employees/${memberId}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Ошибка сервера' }))
+      throw new Error(error.message || error.error || `HTTP error! status: ${response.status}`)
+    }
+  }
+
+  async getUserByPhone(phone_number: string): Promise<UserInfo> {
     const response = await fetch(`${this.baseURL}/users?phone_number=${encodeURIComponent(phone_number)}`, {
       headers: this.getHeaders(),
     })
-    return this.handleResponse<AuthResponse['user']>(response)
+    return this.handleResponse<UserInfo>(response)
   }
 
-  async updateUser(data: UpdateUserRequest): Promise<AuthResponse['user']> {
+  async updateUser(data: UpdateUserRequest): Promise<UserInfo> {
     const response = await fetch(`${this.baseURL}/users`, {
       method: 'PATCH',
       headers: this.getHeaders(),
       body: JSON.stringify(data),
     })
-    return this.handleResponse<AuthResponse['user']>(response)
+    return this.handleResponse<UserInfo>(response)
+  }
+
+  async changePassword(data: ChangePasswordRequest): Promise<void> {
+    const response = await fetch(`${this.baseURL}/users/password`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+    await this.handleResponse(response)
+  }
+
+  async uploadProductImage(file: File): Promise<string> {
+    const fd = new FormData()
+    fd.append('file', file)
+    const headers = this.getHeaders()
+    if (headers instanceof Headers) {
+      headers.delete('Content-Type')
+    } else if (typeof headers === 'object' && 'Content-Type' in headers) {
+      delete (headers as Record<string, string>)['Content-Type']
+    }
+    const response = await fetch(`${this.baseURL}/products/upload-image`, {
+      method: 'POST',
+      headers,
+      body: fd,
+    })
+    const data = await this.handleResponse<{ image_url: string }>(response)
+    return data.image_url
   }
 
   async getProducts(): Promise<Product[]> {
@@ -162,6 +271,13 @@ class ApiClient {
       body: JSON.stringify(operation),
     })
     return this.handleResponse<Operation>(response)
+  }
+
+  async getAnalyticsSummary(): Promise<AnalyticsSummary> {
+    const response = await fetch(`${this.baseURL}/analytics/summary`, {
+      headers: this.getHeaders(),
+    })
+    return this.handleResponse<AnalyticsSummary>(response)
   }
 
   async getStockMovements(): Promise<StockMovementResponse[]> {

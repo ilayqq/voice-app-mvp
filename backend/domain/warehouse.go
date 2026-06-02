@@ -6,6 +6,7 @@ import (
 
 type Warehouse struct {
 	ID          uint      `gorm:"primaryKey" json:"id"`
+	CompanyID   uint      `gorm:"not null" json:"company_id"`
 	Name        string    `gorm:"not null" json:"name"`
 	Location    string    `json:"location"`
 	Description string    `json:"description"`

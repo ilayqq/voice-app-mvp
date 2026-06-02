@@ -13,6 +13,8 @@ type Claims struct {
 	UserID      uint     `json:"sub"`
 	PhoneNumber string   `json:"phone_number"`
 	Roles       []string `json:"roles"`
+	CompanyID   uint     `json:"company_id,omitempty"`
+	CompanyRole string   `json:"company_role,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -36,9 +38,23 @@ func JWTAuth() gin.HandlerFunc {
 			return
 		}
 
-		c.Set("user_id", claims.UserID)
+		userID := claims.UserID
+		if userID == 0 {
+			if sub, ok := token.Claims.(jwt.MapClaims)["sub"]; ok {
+				switch v := sub.(type) {
+				case float64:
+					userID = uint(v)
+				case int:
+					userID = uint(v)
+				}
+			}
+		}
+
+		c.Set("user_id", userID)
 		c.Set("roles", claims.Roles)
 		c.Set("phone_number", claims.PhoneNumber)
+		c.Set("company_id", claims.CompanyID)
+		c.Set("company_role", claims.CompanyRole)
 
 		c.Next()
 	}

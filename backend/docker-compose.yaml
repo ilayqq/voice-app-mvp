@@ -8,6 +8,8 @@ services:
       - "8080:8080"
     env_file:
       - .env_dev
+    volumes:
+      - ./uploads:/app/uploads
     depends_on:
       - postgres
       - redis

@@ -9,9 +9,9 @@ import (
 )
 
 type Repository interface {
-	GetAll() ([]domain.Product, error)
-	GetByBarcode(code string) (*domain.Product, error)
-	GetByWarehouseId(warehouseId int) ([]domain.Product, error)
+	GetAllByCompany(companyID uint) ([]domain.Product, error)
+	GetByBarcode(companyID uint, code string) (*domain.Product, error)
+	GetByWarehouseId(companyID uint, warehouseId int) ([]domain.Product, error)
 	Create(product *domain.Product) error
 	Update(ctx context.Context, product *domain.Product) error
 	Delete(ctx context.Context, product *domain.Product) error
@@ -23,27 +23,27 @@ func NewRepository() Repository {
 	return &repository{}
 }
 
-func (r *repository) GetAll() ([]domain.Product, error) {
+func (r *repository) GetAllByCompany(companyID uint) ([]domain.Product, error) {
 	var products []domain.Product
-	config.DB.Preload("Stocks").Find(&products)
-	return products, nil
+	err := config.DB.Where("company_id = ?", companyID).Preload("Stocks").Find(&products).Error
+	return products, err
 }
 
-func (r *repository) GetByBarcode(code string) (*domain.Product, error) {
+func (r *repository) GetByBarcode(companyID uint, code string) (*domain.Product, error) {
 	var product domain.Product
-	result := config.DB.Preload("Stocks").Where("barcode = ?", code).First(&product)
+	result := config.DB.Preload("Stocks").
+		Where("company_id = ? AND barcode = ?", companyID, code).
+		First(&product)
 	return &product, result.Error
 }
 
-func (r *repository) GetByWarehouseId(warehouseId int) ([]domain.Product, error) {
+func (r *repository) GetByWarehouseId(companyID uint, warehouseId int) ([]domain.Product, error) {
 	var products []domain.Product
 	err := config.DB.
+		Where("company_id = ?", companyID).
 		Joins("JOIN stocks ON stocks.product_id = products.id").
 		Where("stocks.warehouse_id = ?", warehouseId).
 		Preload("Stocks", "warehouse_id = ?", warehouseId).
-		Preload("Stocks.Warehouse").
-		Preload("Stocks.Warehouse.Owner").
-		Preload("Stocks.Product").
 		Find(&products).Error
 	return products, err
 }

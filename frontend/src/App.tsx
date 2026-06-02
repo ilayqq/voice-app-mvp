@@ -11,6 +11,7 @@ import Products from "./pages/Products.tsx";
 import ProductDetails from "./pages/ProductDetails.tsx";
 import Incoming from "./pages/Incoming.tsx";
 import Outgoing from "./pages/Outgoing.tsx";
+import Employees from "./pages/Employees.tsx";
 
 function AppRoutes() {
   const { isAuthenticated, isLoading } = useAuth()
@@ -81,6 +82,14 @@ function AppRoutes() {
             element={
                 <ProtectedRoute>
                     <Profile />
+                </ProtectedRoute>
+            }
+        />
+        <Route
+            path="/employees"
+            element={
+                <ProtectedRoute>
+                    <Employees />
                 </ProtectedRoute>
             }
         />

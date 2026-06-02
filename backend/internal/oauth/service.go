@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"voice-app/domain"
 	"voice-app/internal/auth"
+	"voice-app/internal/company"
 	"voice-app/internal/user"
 
 	"golang.org/x/oauth2"
@@ -32,6 +33,7 @@ type service struct {
 	oauthConfig *oauth2.Config
 	userRepo    user.Repository
 	oauthRepo   Repository
+	companySvc  company.Service
 	db          *gorm.DB
 }
 
@@ -40,12 +42,14 @@ func NewService(
 	db *gorm.DB,
 	userRepo user.Repository,
 	oauthRepo Repository,
+	companySvc company.Service,
 ) Service {
 	return &service{
 		oauthConfig: cfg,
 		db:          db,
 		userRepo:    userRepo,
 		oauthRepo:   oauthRepo,
+		companySvc:  companySvc,
 	}
 }
 
@@ -78,7 +82,14 @@ func (s *service) GoogleCallback(ctx context.Context, code string) (*domain.Auth
 		return nil, fmt.Errorf("find or create user: %w", err)
 	}
 
-	jwtToken, err := auth.GenerateToken(domainUser)
+	var tokenData *auth.TokenData
+	if member, err := s.companySvc.GetMembership(domainUser.ID); err == nil {
+		tokenData = &auth.TokenData{
+			CompanyID:   member.CompanyID,
+			CompanyRole: member.Role,
+		}
+	}
+	jwtToken, err := auth.GenerateToken(domainUser, tokenData)
 	if err != nil {
 		return nil, fmt.Errorf("generate token: %w", err)
 	}

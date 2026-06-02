@@ -2,7 +2,9 @@ package router
 
 import (
 	_ "voice-app/docs"
+	"voice-app/internal/analytics"
 	"voice-app/internal/auth"
+	"voice-app/internal/company"
 	"voice-app/internal/oauth"
 	"voice-app/internal/product"
 	"voice-app/internal/speech"
@@ -25,23 +27,25 @@ func NewRouter(
 	warehouseHandler *warehouse.Handler,
 	speechHandler *speech.Handler,
 	stockMovementHandler *stockmovement.Handler,
+	companyHandler *company.Handler,
+	analyticsHandler *analytics.Handler,
 ) *gin.Engine {
 	r := gin.Default()
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	r.Static("/uploads", "./uploads")
 
 	r.Use(cors.New(cors.Config{
-		//AllowOrigins:     []string{"http://localhost:5173"},
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: false,
 	}))
 
-	auth := r.Group("/auth")
+	authGroup := r.Group("/auth")
 	{
-		auth.POST("/login", authHandler.Login)
-		auth.POST("/register", authHandler.Register)
+		authGroup.POST("/login", authHandler.Login)
+		authGroup.POST("/register", authHandler.Register)
 	}
 	oauthGoogle := r.Group("/oauth/google")
 	{
@@ -52,31 +56,56 @@ func NewRouter(
 	api := r.Group("/v1")
 	api.Use(middleware.JWTAuth())
 	{
-		user := api.Group("/users")
+		userGroup := api.Group("/users")
 		{
-			user.GET("", userHandler.GetUsers)
-			user.PATCH("", middleware.RequireRole("owner"), userHandler.UpdateUser)
+			userGroup.GET("", userHandler.GetUsers)
+			userGroup.PATCH("", userHandler.UpdateUser)
+			userGroup.PATCH("/password", userHandler.ChangePassword)
 		}
-		product := api.Group("/products")
+
+		companyGroup := api.Group("/company")
+		companyGroup.Use(middleware.RequireCompany())
 		{
-			product.GET("", productHandler.GetAll)
-			product.POST("", productHandler.AddProduct)
-			product.PATCH("", productHandler.UpdateProduct)
-			product.DELETE("", productHandler.DeleteProduct)
+			companyGroup.GET("/me", companyHandler.GetMyCompany)
+			employees := companyGroup.Group("/employees")
+			employees.Use(middleware.RequireCompanyRole("owner"))
+			{
+				employees.GET("", companyHandler.ListEmployees)
+				employees.POST("", companyHandler.AddEmployee)
+				employees.PATCH("/:id", companyHandler.UpdateEmployeeRole)
+				employees.DELETE("/:id", companyHandler.RemoveEmployee)
+			}
 		}
-		warehouse := api.Group("/warehouse")
+
+		protected := api.Group("")
+		protected.Use(middleware.RequireCompany())
 		{
-			warehouse.GET("", warehouseHandler.GetAll)
-			warehouse.POST("", warehouseHandler.AddWarehouse)
-		}
-		movements := api.Group("/stock-movements")
-		{
-			movements.GET("", stockMovementHandler.GetAll)
-			movements.POST("", stockMovementHandler.Create)
-		}
-		voice := api.Group("/voice")
-		{
-			voice.POST("/upload", speechHandler.Recognize)
+			productGroup := protected.Group("/products")
+			{
+				productGroup.GET("", productHandler.GetAll)
+				productGroup.POST("", productHandler.AddProduct)
+				productGroup.POST("/upload-image", productHandler.UploadImage)
+				productGroup.PATCH("", productHandler.UpdateProduct)
+				productGroup.DELETE("", productHandler.DeleteProduct)
+			}
+			warehouseGroup := protected.Group("/warehouse")
+			{
+				warehouseGroup.GET("", warehouseHandler.GetAll)
+				warehouseGroup.POST("", warehouseHandler.AddWarehouse)
+			}
+			movements := protected.Group("/stock-movements")
+			{
+				movements.GET("", stockMovementHandler.GetAll)
+				movements.POST("", stockMovementHandler.Create)
+			}
+			voice := protected.Group("/voice")
+			{
+				voice.POST("/upload", speechHandler.Recognize)
+			}
+			analyticsGroup := protected.Group("/analytics")
+			{
+				analyticsGroup.GET("/summary", analyticsHandler.GetSummary)
+			}
 		}
 	}
 

@@ -12,6 +12,7 @@ export interface Product {
   description?: string
   category?: string
   price?: number
+  image_url?: string
   imageUrl?: string
   imageFile?: File
   createdAt?: string
@@ -61,5 +62,21 @@ export interface StockMovementResponse {
   description: string
   created_by_id: number
   created_at: string
+  unit_price?: number
+  amount?: number
+}
+
+export interface AnalyticsSummary {
+  turnover_total: number
+  turnover_today: number
+  turnover_month: number
+  incoming_value: number
+  incoming_today: number
+  outgoing_value: number
+  outgoing_today: number
+  low_stock_count: number
+  inventory_value: number
+  operations_today: number
+  products_count: number
 }
 

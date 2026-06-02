@@ -3,9 +3,8 @@ package warehouse
 import "voice-app/domain"
 
 type Service interface {
-	GetAll() ([]domain.Warehouse, error)
-	GetByOwnerPhone(phoneNumber string) ([]domain.Warehouse, error)
-	Create(warehouse domain.Warehouse) (*domain.Warehouse, error)
+	GetByCompanyID(companyID uint) ([]domain.Warehouse, error)
+	Create(companyID, ownerID uint, warehouse domain.Warehouse) (*domain.Warehouse, error)
 }
 
 type service struct {
@@ -16,23 +15,13 @@ func NewService(repository Repository) Service {
 	return &service{repository: repository}
 }
 
-func (s *service) GetAll() ([]domain.Warehouse, error) {
-	warehouses, err := s.repository.GetAll()
-	if err != nil {
-		return nil, err
-	}
-	return warehouses, nil
+func (s *service) GetByCompanyID(companyID uint) ([]domain.Warehouse, error) {
+	return s.repository.GetByCompanyID(companyID)
 }
 
-func (s *service) GetByOwnerPhone(phoneNumber string) ([]domain.Warehouse, error) {
-	warehouses, err := s.repository.GetByOwnerPhone(phoneNumber)
-	if err != nil {
-		return nil, err
-	}
-	return warehouses, nil
-}
-
-func (s *service) Create(warehouse domain.Warehouse) (*domain.Warehouse, error) {
+func (s *service) Create(companyID, ownerID uint, warehouse domain.Warehouse) (*domain.Warehouse, error) {
+	warehouse.CompanyID = companyID
+	warehouse.OwnerID = ownerID
 	if err := s.repository.Create(&warehouse); err != nil {
 		return nil, err
 	}

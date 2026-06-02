@@ -1,26 +1,48 @@
 .language-switcher {
-  display: flex;
-  gap: 8px;
-  margin: 16px 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
 }
 
 .language-switcher button {
-  padding: 6px 12px;
-  border: 1px solid var(--border-color, #ddd);
-  background: var(--background-color, #fff);
-  color: var(--text-color, #333);
-  border-radius: 4px;
+  padding: 12px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.75);
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
 }
 
-.language-switcher button:hover {
-  background: var(--hover-background, #f5f5f5);
+.language-switcher button:hover:not(.active) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.language-switcher button:active:not(.active) {
+  transform: translateY(0);
 }
 
 .language-switcher button.active {
-  background: var(--primary-color, #007bff);
-  color: white;
-  border-color: var(--primary-color, #007bff);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.45), rgba(139, 92, 246, 0.35));
+  color: #fff;
+  border-color: rgba(129, 140, 248, 0.65);
+  box-shadow:
+    0 0 0 1px rgba(129, 140, 248, 0.25),
+    0 8px 24px rgba(79, 70, 229, 0.25);
+}
+
+.language-switcher button:focus-visible {
+  outline: 2px solid rgba(129, 140, 248, 0.8);
+  outline-offset: 2px;
 }

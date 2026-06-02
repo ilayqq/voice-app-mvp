@@ -22,4 +22,6 @@ type StockMovementResponse struct {
 	Description string    `json:"description"`
 	CreatedByID uint      `json:"created_by_id"`
 	CreatedAt   time.Time `json:"created_at"`
+	UnitPrice   float64   `json:"unit_price"`
+	Amount      float64   `json:"amount"`
 }
