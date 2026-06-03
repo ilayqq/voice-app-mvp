@@ -53,7 +53,12 @@
     "quotaError": "Сервис распознавания речи недоступен: исчерпан лимит OpenAI API. Пополните баланс или обновите API-ключ в настройках сервера.",
     "apiKeyError": "Неверный API-ключ OpenAI на сервере. Проверьте переменную API_KEY.",
     "whisperError": "Локальное распознавание речи недоступно. Проверьте, что на сервере установлены Python, ffmpeg и openai-whisper.",
-    "recognized": "Распознанный текст: {{text}}"
+    "recognized": "Распознанный текст: {{text}}",
+    "incomingSuccess": "Приход: {{product}} +{{quantity}} шт",
+    "outgoingSuccess": "Расход: {{product}} −{{quantity}} шт",
+    "productNotFound": "Товар «{{product}}» не найден. Сначала добавьте его в каталог.",
+    "commandNotUnderstood": "Команда не распознана: {{text}}",
+    "commandError": "Не удалось выполнить команду: {{error}}"
   },
   "dashboard": {
     "title": "Склад",

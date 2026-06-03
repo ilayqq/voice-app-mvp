@@ -1,8 +1,8 @@
 package speech
 
 import (
-	"fmt"
 	"net/http"
+	"voice-app/middleware"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,14 +35,25 @@ func (h *Handler) Recognize(c *gin.Context) {
 	}
 	defer file.Close()
 
+	companyID, ok := middleware.GetCompanyID(c)
+	if !ok {
+		c.JSON(http.StatusForbidden, gin.H{"error": "no company access"})
+		return
+	}
+
+	userID, ok := middleware.GetUserID(c)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
 	ctx := c.Request.Context()
 
-	text, err := h.service.RecognizeSpeech(ctx, file, header)
+	result, err := h.service.RecognizeAndExecute(ctx, file, header, userID, companyID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	fmt.Println("Recognized:", text)
-	c.JSON(http.StatusOK, gin.H{"text": text})
+	c.JSON(http.StatusOK, result)
 }

@@ -65,6 +65,20 @@ export interface ChangePasswordRequest {
   new_password: string
 }
 
+export interface VoiceCommandResult {
+  parsed: boolean
+  type?: 'incoming' | 'outgoing'
+  quantity?: number
+  product_name?: string
+  product_id?: number
+  error?: string
+}
+
+export interface VoiceUploadResponse {
+  text?: string
+  command?: VoiceCommandResult
+}
+
 class ApiClient {
   private get baseURL(): string {
     return API_CONFIG.getBaseURL()
@@ -296,7 +310,7 @@ class ApiClient {
     return this.handleResponse<StockMovementResponse>(response)
   }
 
-  async uploadVoice(blob: Blob, filename = 'voice.webm'): Promise<{ text?: string }> {
+  async uploadVoice(blob: Blob, filename = 'voice.webm'): Promise<VoiceUploadResponse> {
     const fd = new FormData()
     fd.append('file', blob, filename)
     const token = localStorage.getItem('auth_token')

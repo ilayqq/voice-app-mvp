@@ -53,7 +53,12 @@
     "quotaError": "Speech tanу qizmeti qoljetimsiz: OpenAI API limiti tausti. Serverde balans nemese API_KEY jangartynyz.",
     "apiKeyError": "Serverdegi OpenAI API kilti qate. API_KEY ozgeruinsin tekseriniz.",
     "whisperError": "Jergilikti speech tanu qoljetimsiz. Serverde Python, ffmpeg jane openai-whisper ornatiulganin tekseriniz.",
-    "recognized": "Танылған мәтін: {{text}}"
+    "recognized": "Танылған мәтін: {{text}}",
+    "incomingSuccess": "Кіріс: {{product}} +{{quantity}} дана",
+    "outgoingSuccess": "Шығыс: {{product}} −{{quantity}} дана",
+    "productNotFound": "«{{product}}» тауары табылмады. Алдымен каталогқа қосыңыз.",
+    "commandNotUnderstood": "Бұйрық танылмады: {{text}}",
+    "commandError": "Бұйрықты орындау мүмкін болмады: {{error}}"
   },
   "dashboard": {
     "title": "Қойма",

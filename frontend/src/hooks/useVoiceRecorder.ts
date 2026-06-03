@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import apiClient from '../services/api.ts'
+import type { VoiceUploadResponse } from '../services/api.ts'
 
 function pickMimeType(): string {
     const candidates = [
@@ -17,6 +18,35 @@ function filenameForMimeType(mimeType: string): string {
     if (mimeType.includes('ogg')) return 'voice.ogg'
     if (mimeType.includes('mp4')) return 'voice.m4a'
     return 'voice.wav'
+}
+
+function showVoiceResult(result: VoiceUploadResponse, t: (key: string, opts?: Record<string, unknown>) => string) {
+    const command = result.command
+    if (!command?.parsed) {
+        if (result.text) {
+            alert(t('voice.commandNotUnderstood', { text: result.text }))
+        }
+        return
+    }
+
+    if (command.error === 'product_not_found') {
+        alert(t('voice.productNotFound', { product: command.product_name ?? '' }))
+        return
+    }
+
+    if (command.error) {
+        alert(t('voice.commandError', { error: command.error }))
+        return
+    }
+
+    const product = command.product_name ?? ''
+    const quantity = command.quantity ?? 0
+
+    if (command.type === 'outgoing') {
+        alert(t('voice.outgoingSuccess', { product, quantity }))
+    } else {
+        alert(t('voice.incomingSuccess', { product, quantity }))
+    }
 }
 
 export function useVoiceRecorder() {
@@ -101,9 +131,7 @@ export function useVoiceRecorder() {
                 blob,
                 filenameForMimeType(mimeTypeRef.current),
             )
-            if (result.text) {
-                alert(t('voice.recognized', { text: result.text }))
-            }
+            showVoiceResult(result, t)
         } catch (e) {
             console.error('Failed to stop recording:', e)
             const code = e instanceof Error ? e.message : ''

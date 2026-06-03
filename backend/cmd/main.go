@@ -64,12 +64,12 @@ func main() {
 	warehouseService := warehouse.NewService(warehouseRepo)
 	warehouseHandler := warehouse.NewHandler(warehouseService)
 
-	speechService := speech.NewService()
-	speechHandler := speech.NewHandler(speechService)
-
 	stockMovementRepo := stockmovement.NewRepository()
 	stockMovementService := stockmovement.NewService(stockMovementRepo)
 	stockMovementHandler := stockmovement.NewHandler(stockMovementService)
+
+	speechService := speech.NewService(productService, stockMovementService)
+	speechHandler := speech.NewHandler(speechService)
 
 	analyticsRepo := analytics.NewRepository()
 	analyticsService := analytics.NewService(analyticsRepo)

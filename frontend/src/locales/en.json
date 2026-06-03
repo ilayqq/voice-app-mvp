@@ -53,7 +53,12 @@
     "quotaError": "Speech recognition is unavailable: OpenAI API quota exceeded. Add billing or update the API key on the server.",
     "apiKeyError": "Invalid OpenAI API key on the server. Check the API_KEY environment variable.",
     "whisperError": "Local speech recognition is unavailable. Ensure Python, ffmpeg, and openai-whisper are installed on the server.",
-    "recognized": "Recognized text: {{text}}"
+    "recognized": "Recognized text: {{text}}",
+    "incomingSuccess": "Stock in: {{product}} +{{quantity}} pcs",
+    "outgoingSuccess": "Stock out: {{product}} −{{quantity}} pcs",
+    "productNotFound": "Product \"{{product}}\" not found. Add it to the catalog first.",
+    "commandNotUnderstood": "Command not recognized: {{text}}",
+    "commandError": "Could not execute command: {{error}}"
   },
   "dashboard": {
     "title": "Warehouse",
