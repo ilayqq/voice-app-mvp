@@ -16,7 +16,8 @@
   },
   "employees": {
     "title": "Қызметкерлер",
-    "subtitle": "Қоймаға қызметкер қосу және рөл тағайындау",
+    "subtitle": "Телефон нөмірі бойынша қосу — пайдаланушы жүйеде тіркелген болуы керек",
+    "phoneHint": "Жаңа аккаунт жасалмайды. Адам бұрын тіркелген болуы керек.",
     "addButton": "+ Қызметкер қосу",
     "cancelAdd": "Болдырмау",
     "namePlaceholder": "Қызметкер аты",
@@ -35,6 +36,7 @@
     "removeError": "Қызметкерді жою сәтсіз"
   },
   "nav": {
+    "back": "Артқа",
     "warehouse": "Қойма",
     "products": "Тауарлар",
     "record": "Дауыс",
@@ -54,9 +56,16 @@
     "apiKeyError": "Serverdegi OpenAI API kilti qate. API_KEY ozgeruinsin tekseriniz.",
     "whisperError": "Jergilikti speech tanu qoljetimsiz. Serverde Python, ffmpeg jane openai-whisper ornatiulganin tekseriniz.",
     "recognized": "Танылған мәтін: {{text}}",
+    "confirmIncomingTitle": "Кірісті растау",
+    "confirmOutgoingTitle": "Шығысты растау",
+    "confirmProductLabel": "Тауар",
+    "confirmQuantityLabel": "Саны (дана)",
+    "confirm": "Растау",
+    "cancel": "Болдырмау",
     "incomingSuccess": "Кіріс: {{product}} +{{quantity}} дана",
     "outgoingSuccess": "Шығыс: {{product}} −{{quantity}} дана",
     "productNotFound": "«{{product}}» тауары табылмады. Алдымен каталогқа қосыңыз.",
+    "createProductNav": "Тауар жасау ашылады",
     "commandNotUnderstood": "Бұйрық танылмады: {{text}}",
     "commandError": "Бұйрықты орындау мүмкін болмады: {{error}}"
   },
@@ -76,6 +85,16 @@
     "incomingStock": "Тауар келуі",
     "outgoingStock": "Тауар шығуы",
     "newProduct": "Жаңа тауар",
+    "topProducts": "Табыс бойынша үздік тауарлар",
+    "topProductsHint": "Таңдалған кезеңдегі шығыс (сату): баға × саны",
+    "topProductsEmpty": "Осы кезеңде табысы бар сату жоқ",
+    "topProductsSold": "Сатылды: {{count}} дана",
+    "period": {
+      "today": "Бүгін",
+      "week": "7 күн",
+      "month": "Ай",
+      "all": "Барлық уақыт"
+    },
     "recentOperations": "Соңғы операциялар",
     "noOperations": "Операциялар жоқ",
     "incomingLabel": "Келу",

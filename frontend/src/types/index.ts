@@ -80,3 +80,18 @@ export interface AnalyticsSummary {
   products_count: number
 }
 
+export type TopProductsPeriod = 'today' | 'week' | 'month' | 'all'
+
+export interface TopProductItem {
+  product_id: number
+  product_name: string
+  barcode: string
+  quantity_sold: number
+  revenue: number
+}
+
+export interface TopProductsResponse {
+  period: string
+  items: TopProductItem[]
+}
+

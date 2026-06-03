@@ -1,7 +1,13 @@
 import Layout from '../components/Layout.tsx'
-import type { StockMovementResponse, AnalyticsSummary } from '../types/index.ts'
+import type {
+    StockMovementResponse,
+    AnalyticsSummary,
+    TopProductItem,
+    TopProductsPeriod,
+} from '../types/index.ts'
 import { useTranslation } from 'react-i18next'
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import apiClient from '../services/api.ts'
 import { motion, type Variants} from 'framer-motion'
 import { formatMoney } from '../utils/format.ts'
@@ -12,19 +18,23 @@ export default function Dashboard() {
     const { t } = useTranslation()
     const [movements, setMovements] = useState<StockMovementResponse[]>([])
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null)
+    const [topProducts, setTopProducts] = useState<TopProductItem[]>([])
+    const [topPeriod, setTopPeriod] = useState<TopProductsPeriod>('month')
 
     const refreshDashboard = useCallback(async () => {
         try {
-            const [summaryData, movementsData] = await Promise.all([
+            const [summaryData, movementsData, topData] = await Promise.all([
                 apiClient.getAnalyticsSummary(),
                 apiClient.getStockMovements(),
+                apiClient.getTopProducts(topPeriod, 10),
             ])
             setSummary(summaryData)
             setMovements(movementsData)
+            setTopProducts(topData.items)
         } catch {
             // keep last successful data on transient errors
         }
-    }, [])
+    }, [topPeriod])
 
     useEffect(() => {
         void refreshDashboard()
@@ -102,6 +112,63 @@ export default function Dashboard() {
                             value={summary?.operations_today ?? '—'}
                             label={t('dashboard.operationsToday')}
                         />
+                    </motion.div>
+
+                    <motion.div
+                        variants={itemVariants}
+                        className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20 space-y-4"
+                    >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <h2 className="text-lg font-semibold">{t('dashboard.topProducts')}</h2>
+                            <div className="flex flex-wrap gap-2">
+                                {(['today', 'week', 'month', 'all'] as TopProductsPeriod[]).map(p => (
+                                    <button
+                                        key={p}
+                                        type="button"
+                                        onClick={() => setTopPeriod(p)}
+                                        className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                                            topPeriod === p
+                                                ? 'bg-indigo-500 text-white'
+                                                : 'bg-white/10 text-gray-300 hover:bg-white/15'
+                                        }`}
+                                    >
+                                        {t(`dashboard.period.${p}`)}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-400">{t('dashboard.topProductsHint')}</p>
+                        {topProducts.length === 0 ? (
+                            <p className="text-sm text-gray-400">{t('dashboard.topProductsEmpty')}</p>
+                        ) : (
+                            <ol className="space-y-2">
+                                {topProducts.map((item, index) => (
+                                    <li key={item.product_id}>
+                                        <Link
+                                            to={`/products/${encodeURIComponent(item.barcode)}`}
+                                            className="flex items-center gap-3 rounded-xl bg-white/5 px-4 py-3
+                                                       ring-1 ring-white/10 hover:bg-white/10 transition"
+                                        >
+                                            <span className="flex h-8 w-8 shrink-0 items-center justify-center
+                                                             rounded-full bg-indigo-500/25 text-sm font-bold text-indigo-200">
+                                                {index + 1}
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-medium truncate">{item.product_name}</p>
+                                                <p className="text-xs text-gray-400">
+                                                    {t('dashboard.topProductsSold', { count: item.quantity_sold })}
+                                                </p>
+                                            </div>
+                                            <div className="shrink-0 text-right">
+                                                <p className="font-semibold text-emerald-300">
+                                                    {formatMoney(item.revenue)}
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    </li>
+                                ))}
+                            </ol>
+                        )}
                     </motion.div>
 
                     <motion.div

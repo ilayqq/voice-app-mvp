@@ -7,7 +7,6 @@ import (
 	"voice-app/dto"
 	"voice-app/internal/user"
 
-	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -81,26 +80,18 @@ func (s *service) AddEmployee(companyID, ownerID uint, req dto.AddEmployeeReques
 
 	u, err := s.userRepo.GetByPhoneNumber(req.PhoneNumber)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-		if err != nil {
-			return nil, err
-		}
-		phone := req.PhoneNumber
-		u = &domain.User{
-			FullName:    req.FullName,
-			PhoneNumber: &phone,
-			Password:    string(hash),
-		}
-		if err := s.userRepo.Create(u); err != nil {
-			return nil, err
-		}
-	} else if err != nil {
+		return nil, errors.New("user with this phone number is not registered")
+	}
+	if err != nil {
 		return nil, err
-	} else {
-		existing, _ := s.repo.GetMemberByUserID(u.ID)
-		if existing != nil {
-			return nil, errors.New("user already belongs to a company")
+	}
+
+	existing, _ := s.repo.GetMemberByUserID(u.ID)
+	if existing != nil {
+		if existing.CompanyID == companyID {
+			return nil, errors.New("user is already a member of this company")
 		}
+		return nil, errors.New("user already belongs to another company")
 	}
 
 	member := &domain.CompanyMember{

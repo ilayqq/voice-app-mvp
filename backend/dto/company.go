@@ -16,8 +16,6 @@ type CompanyMemberResponse struct {
 
 type AddEmployeeRequest struct {
 	PhoneNumber string `json:"phone_number" binding:"required"`
-	Password    string `json:"password" binding:"required"`
-	FullName    string `json:"full_name"`
 	Role        string `json:"role" binding:"required"`
 }
 

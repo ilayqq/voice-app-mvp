@@ -16,7 +16,8 @@
   },
   "employees": {
     "title": "Сотрудники",
-    "subtitle": "Добавляйте сотрудников на склад и назначайте роли",
+    "subtitle": "Добавьте по номеру телефона пользователя, который уже зарегистрирован в системе",
+    "phoneHint": "Пользователь должен быть зарегистрирован (владелец своей компании). Новый аккаунт не создаётся.",
     "addButton": "+ Добавить сотрудника",
     "cancelAdd": "Отмена",
     "namePlaceholder": "Имя сотрудника",
@@ -35,6 +36,7 @@
     "removeError": "Не удалось удалить сотрудника"
   },
   "nav": {
+    "back": "Назад",
     "warehouse": "Склад",
     "products": "Товары",
     "record": "Голос",
@@ -54,9 +56,16 @@
     "apiKeyError": "Неверный API-ключ OpenAI на сервере. Проверьте переменную API_KEY.",
     "whisperError": "Локальное распознавание речи недоступно. Проверьте, что на сервере установлены Python, ffmpeg и openai-whisper.",
     "recognized": "Распознанный текст: {{text}}",
+    "confirmIncomingTitle": "Подтвердите приход",
+    "confirmOutgoingTitle": "Подтвердите расход",
+    "confirmProductLabel": "Товар",
+    "confirmQuantityLabel": "Количество (шт)",
+    "confirm": "Подтвердить",
+    "cancel": "Отменить",
     "incomingSuccess": "Приход: {{product}} +{{quantity}} шт",
     "outgoingSuccess": "Расход: {{product}} −{{quantity}} шт",
     "productNotFound": "Товар «{{product}}» не найден. Сначала добавьте его в каталог.",
+    "createProductNav": "Открываю создание товара",
     "commandNotUnderstood": "Команда не распознана: {{text}}",
     "commandError": "Не удалось выполнить команду: {{error}}"
   },
@@ -76,6 +85,16 @@
     "incomingStock": "Приход товара",
     "outgoingStock": "Расход товара",
     "newProduct": "Новый товар",
+    "topProducts": "Топ товаров по выручке",
+    "topProductsHint": "По сумме расхода (продаж) за выбранный период, цена × количество",
+    "topProductsEmpty": "За этот период нет расходов с выручкой",
+    "topProductsSold": "Продано: {{count}} шт",
+    "period": {
+      "today": "Сегодня",
+      "week": "7 дней",
+      "month": "Месяц",
+      "all": "Всё время"
+    },
     "recentOperations": "Последние операции",
     "noOperations": "Нет операций",
     "incomingLabel": "Приход",

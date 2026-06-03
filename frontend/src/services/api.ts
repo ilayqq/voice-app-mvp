@@ -6,6 +6,8 @@ import type {
   StockMovementRequest,
   StockMovementResponse,
   AnalyticsSummary,
+  TopProductsPeriod,
+  TopProductsResponse,
 } from '../types'
 
 export interface LoginRequest {
@@ -50,8 +52,6 @@ export interface CompanyEmployee {
 
 export interface AddEmployeeRequest {
   phone_number: string
-  password: string
-  full_name?: string
   role: 'manager' | 'employee'
 }
 
@@ -67,7 +67,8 @@ export interface ChangePasswordRequest {
 
 export interface VoiceCommandResult {
   parsed: boolean
-  type?: 'incoming' | 'outgoing'
+  type?: 'incoming' | 'outgoing' | 'navigate'
+  action?: 'create_product'
   quantity?: number
   product_name?: string
   product_id?: number
@@ -292,6 +293,14 @@ class ApiClient {
       headers: this.getHeaders(),
     })
     return this.handleResponse<AnalyticsSummary>(response)
+  }
+
+  async getTopProducts(period: TopProductsPeriod = 'month', limit = 10): Promise<TopProductsResponse> {
+    const params = new URLSearchParams({ period, limit: String(limit) })
+    const response = await fetch(`${this.baseURL}/analytics/top-products?${params}`, {
+      headers: this.getHeaders(),
+    })
+    return this.handleResponse<TopProductsResponse>(response)
   }
 
   async getStockMovements(): Promise<StockMovementResponse[]> {

@@ -1,6 +1,10 @@
 package analytics
 
-import "voice-app/config"
+import (
+	"fmt"
+	"strings"
+	"voice-app/config"
+)
 
 const lowStockThreshold = 5
 
@@ -23,8 +27,17 @@ type SummaryData struct {
 	ProductsCount   int
 }
 
+type TopProductRow struct {
+	ProductID    uint
+	ProductName  string
+	Barcode      string
+	QuantitySold int
+	Revenue      float64
+}
+
 type Repository interface {
 	GetSummary(companyID uint) (*SummaryData, error)
+	GetTopProducts(companyID uint, period string, limit int) ([]TopProductRow, error)
 }
 
 type repository struct{}
@@ -127,4 +140,59 @@ func (r *repository) GetSummary(companyID uint) (*SummaryData, error) {
 		OperationsToday: int(opsToday),
 		ProductsCount:   int(productsCount),
 	}, nil
+}
+
+func periodSQLFilter(period string) (string, error) {
+	switch period {
+	case "week", "7d":
+		return "AND sm.created_at >= CURRENT_DATE - INTERVAL '7 days'", nil
+	case "month", "30d":
+		return "AND sm.created_at >= DATE_TRUNC('month', CURRENT_DATE)", nil
+	case "today":
+		return "AND sm.created_at >= CURRENT_DATE AND sm.created_at < CURRENT_DATE + INTERVAL '1 day'", nil
+	case "all":
+		return "", nil
+	default:
+		return "", fmt.Errorf("invalid period")
+	}
+}
+
+func (r *repository) GetTopProducts(companyID uint, period string, limit int) ([]TopProductRow, error) {
+	dateFilter, err := periodSQLFilter(period)
+	if err != nil {
+		return nil, err
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+	if limit > 50 {
+		limit = 50
+	}
+
+	query := fmt.Sprintf(`
+		SELECT
+			p.id AS product_id,
+			p.name AS product_name,
+			p.barcode AS barcode,
+			COALESCE(SUM(sm.quantity), 0)::int AS quantity_sold,
+			COALESCE(SUM(sm.quantity * p.price), 0) AS revenue
+		FROM stock_movements sm
+		JOIN stocks s ON s.id = sm.stock_id
+		JOIN products p ON p.id = s.product_id
+		JOIN warehouses w ON w.id = s.warehouse_id
+		WHERE w.company_id = ?
+		  AND p.company_id = ?
+		  AND sm.type = 'outgoing'
+		  %s
+		GROUP BY p.id, p.name, p.barcode
+		HAVING COALESCE(SUM(sm.quantity * p.price), 0) > 0
+		ORDER BY revenue DESC
+		LIMIT ?
+	`, strings.TrimSpace(dateFilter))
+
+	var rows []TopProductRow
+	if err := config.DB.Raw(query, companyID, companyID, limit).Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+	return rows, nil
 }

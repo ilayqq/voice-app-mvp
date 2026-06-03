@@ -105,6 +105,7 @@ func NewRouter(
 			analyticsGroup := protected.Group("/analytics")
 			{
 				analyticsGroup.GET("/summary", analyticsHandler.GetSummary)
+				analyticsGroup.GET("/top-products", analyticsHandler.GetTopProducts)
 			}
 		}
 	}

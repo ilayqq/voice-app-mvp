@@ -2,11 +2,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { LayoutDashboard, Package, QrCode, Loader2, Mic, X, User } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import BarcodeScanner from './BarcodeScanner.tsx'
 import apiClient from '../services/api.ts'
 import { openProductCreate } from '../utils/productCreate.ts'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder.ts'
+import VoiceStockConfirmModal from './VoiceStockConfirmModal.tsx'
 
 type Props = {
     title: string
@@ -20,7 +21,24 @@ export default function Layout({ title, children, showBack = false }: Props) {
     const navigate = useNavigate()
     const currentPath = location.pathname
     const [scanOpen, setScanOpen] = useState(false)
-    const { recording, loading, toggle: toggleRecording } = useVoiceRecorder()
+    const {
+        recording,
+        loading,
+        toggle: toggleRecording,
+        pendingStock,
+        confirming,
+        confirmStock,
+        cancelStockConfirm,
+    } = useVoiceRecorder()
+
+    const goBack = useCallback(() => {
+        const idx = (window.history.state as { idx?: number } | null)?.idx
+        if (typeof idx === 'number' && idx > 0) {
+            navigate(-1)
+        } else {
+            navigate('/')
+        }
+    }, [navigate])
 
     return (
         <div className="min-h-screen bg-slate-950 text-white">
@@ -30,12 +48,14 @@ export default function Layout({ title, children, showBack = false }: Props) {
                 <div className="mx-auto max-w-6xl px-4 py-4 flex items-center justify-between">
                     <div className="w-10">
                         {showBack && currentPath !== '/' && (
-                            <Link
-                                to="/"
+                            <button
+                                type="button"
+                                onClick={goBack}
                                 className="text-xl font-semibold hover:text-indigo-400 transition"
+                                aria-label={t('nav.back')}
                             >
                                 ←
-                            </Link>
+                            </button>
                         )}
                     </div>
 
@@ -51,6 +71,16 @@ export default function Layout({ title, children, showBack = false }: Props) {
             <main className="pb-24">
                 {children}
             </main>
+
+            {pendingStock && (
+                <VoiceStockConfirmModal
+                    key={`${pendingStock.productId}-${pendingStock.type}-${pendingStock.quantity}`}
+                    pending={pendingStock}
+                    confirming={confirming}
+                    onConfirm={confirmStock}
+                    onCancel={cancelStockConfirm}
+                />
+            )}
 
             {/* SCAN MODAL */}
             <div

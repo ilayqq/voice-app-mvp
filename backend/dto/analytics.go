@@ -13,3 +13,16 @@ type AnalyticsSummary struct {
 	OperationsToday  int     `json:"operations_today"`
 	ProductsCount    int     `json:"products_count"`
 }
+
+type TopProductItem struct {
+	ProductID    uint    `json:"product_id"`
+	ProductName  string  `json:"product_name"`
+	Barcode      string  `json:"barcode"`
+	QuantitySold int     `json:"quantity_sold"`
+	Revenue      float64 `json:"revenue"`
+}
+
+type TopProductsResponse struct {
+	Period string           `json:"period"`
+	Items  []TopProductItem `json:"items"`
+}

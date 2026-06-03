@@ -17,7 +17,9 @@ import {
 } from 'lucide-react'
 import {
     OPEN_PRODUCT_CREATE_EVENT,
+    OPEN_PRODUCT_CREATE_VOICE_EVENT,
     type OpenProductCreateDetail,
+    type OpenProductCreateVoiceDetail,
 } from '../utils/productCreate.ts'
 
 const LOW_STOCK_THRESHOLD = 5
@@ -45,10 +47,13 @@ export default function Products() {
             .finally(() => setLoading(false))
     }, [])
 
-    const openCreateForm = useCallback((barcode?: string) => {
+    const openCreateForm = useCallback((barcode?: string, productName?: string) => {
         if (barcode) {
             handledCreateBarcodeRef.current = barcode
-            setEditingProduct({ barcode, name: '' } as Product)
+            setEditingProduct({ barcode, name: productName ?? '' } as Product)
+        } else if (productName) {
+            handledCreateBarcodeRef.current = null
+            setEditingProduct({ name: productName, barcode: '' } as Product)
         } else {
             handledCreateBarcodeRef.current = null
             setEditingProduct(null)
@@ -64,16 +69,33 @@ export default function Products() {
             }
         }
 
+        const onOpenFromVoice = (event: Event) => {
+            const productName = (event as CustomEvent<OpenProductCreateVoiceDetail>).detail?.productName
+            openCreateForm(undefined, productName)
+        }
+
         window.addEventListener(OPEN_PRODUCT_CREATE_EVENT, onOpenFromScan)
-        return () => window.removeEventListener(OPEN_PRODUCT_CREATE_EVENT, onOpenFromScan)
+        window.addEventListener(OPEN_PRODUCT_CREATE_VOICE_EVENT, onOpenFromVoice)
+        return () => {
+            window.removeEventListener(OPEN_PRODUCT_CREATE_EVENT, onOpenFromScan)
+            window.removeEventListener(OPEN_PRODUCT_CREATE_VOICE_EVENT, onOpenFromVoice)
+        }
     }, [openCreateForm])
 
     useEffect(() => {
-        const state = location.state as { create?: boolean; barcode?: string } | null
-        if (!state?.create || !state.barcode) return
-        if (handledCreateBarcodeRef.current === state.barcode) return
+        const state = location.state as {
+            create?: boolean
+            barcode?: string
+            productName?: string
+        } | null
+        if (!state?.create) return
 
-        openCreateForm(state.barcode)
+        if (state.barcode) {
+            if (handledCreateBarcodeRef.current === state.barcode) return
+            openCreateForm(state.barcode, state.productName)
+        } else {
+            openCreateForm(undefined, state.productName)
+        }
         window.history.replaceState(null, '', location.pathname + location.search)
     }, [location.state, location.pathname, location.search, openCreateForm])
 
@@ -167,7 +189,12 @@ export default function Products() {
                                 className="rounded-xl bg-white/10 p-6 ring-1 ring-white/20 mb-24"
                             >
                                 <ProductForm
-                                    key={editingProduct?.id ?? editingProduct?.barcode ?? 'new'}
+                                    key={
+                                        editingProduct?.id
+                                        ?? editingProduct?.barcode
+                                        ?? editingProduct?.name
+                                        ?? 'new'
+                                    }
                                     product={editingProduct}
                                     onSave={async (product, imageFile) => {
                                         try {

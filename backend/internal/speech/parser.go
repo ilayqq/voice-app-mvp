@@ -36,14 +36,38 @@ var fillerWords = []string{"of", "the", "a", "an", "и", "в", "на", "по"}
 type ParsedCommand struct {
 	Parsed      bool
 	Type        string
+	Action      string
 	Quantity    int
 	ProductName string
+}
+
+var createProductPhrases = []string{
+	"создай товар", "создать товар", "создайте товар",
+	"новый товар", "новая товар", "новое товар",
+	"добавить товар", "добавь товар", "добавте товар",
+	"create product", "new product", "add product",
+	"тауар жаса", "жаңа тауар", "жана тауар", "тауар қос", "тауар qos",
+}
+
+var createProductKeywords = []string{
+	"создай", "создать", "создайте", "новый", "новая", "новое",
+	"добавить", "добавь", "добавте",
+	"create", "new", "add",
+	"жаса", "жаңа", "жана", "қос", "qos",
+}
+
+var productNounKeywords = []string{
+	"товар", "тауар", "product",
 }
 
 func ParseVoiceCommand(text string) ParsedCommand {
 	normalized := normalizeText(text)
 	if normalized == "" {
 		return ParsedCommand{}
+	}
+
+	if nav := parseCreateProductNavigation(normalized); nav.Parsed {
+		return nav
 	}
 
 	qty, qtyToken := extractQuantity(normalized)
@@ -67,6 +91,66 @@ func ParseVoiceCommand(text string) ParsedCommand {
 		Quantity:    qty,
 		ProductName: productName,
 	}
+}
+
+func parseCreateProductNavigation(text string) ParsedCommand {
+	if !matchesCreateProductIntent(text) {
+		return ParsedCommand{}
+	}
+
+	name := extractCreateProductName(text)
+	return ParsedCommand{
+		Parsed:      true,
+		Type:        "navigate",
+		Action:      "create_product",
+		ProductName: name,
+	}
+}
+
+func matchesCreateProductIntent(text string) bool {
+	for _, phrase := range createProductPhrases {
+		if strings.Contains(text, phrase) {
+			return true
+		}
+	}
+
+	hasProductNoun := false
+	for _, noun := range productNounKeywords {
+		if keywordInText(text, noun) {
+			hasProductNoun = true
+			break
+		}
+	}
+	if !hasProductNoun {
+		return false
+	}
+
+	for _, kw := range createProductKeywords {
+		if keywordInText(text, kw) {
+			return true
+		}
+	}
+	return false
+}
+
+func extractCreateProductName(text string) string {
+	cleaned := text
+	for _, phrase := range createProductPhrases {
+		cleaned = strings.ReplaceAll(cleaned, phrase, " ")
+	}
+	for _, kw := range append(append([]string{}, createProductKeywords...), productNounKeywords...) {
+		cleaned = removeKeyword(cleaned, kw)
+	}
+	for _, word := range fillerWords {
+		cleaned = removeKeyword(cleaned, word)
+	}
+
+	cleaned = strings.Join(strings.Fields(cleaned), " ")
+	cleaned = strings.TrimSpace(cleaned)
+	if cleaned == "" {
+		return ""
+	}
+	return titleProductName(cleaned)
 }
 
 func normalizeText(text string) string {

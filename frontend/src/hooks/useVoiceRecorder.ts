@@ -1,7 +1,17 @@
 import { useCallback, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useLocation, useNavigate } from 'react-router-dom'
 import apiClient from '../services/api.ts'
 import type { VoiceUploadResponse } from '../services/api.ts'
+import { openProductCreateFromVoice } from '../utils/productCreate.ts'
+
+export type PendingVoiceStock = {
+    productId: number
+    productName: string
+    quantity: number
+    type: 'incoming' | 'outgoing'
+    sourceText?: string
+}
 
 function pickMimeType(): string {
     const candidates = [
@@ -20,12 +30,42 @@ function filenameForMimeType(mimeType: string): string {
     return 'voice.wav'
 }
 
-function showVoiceResult(result: VoiceUploadResponse, t: (key: string, opts?: Record<string, unknown>) => string) {
+function isStockCommand(
+    command: NonNullable<VoiceUploadResponse['command']>,
+): command is NonNullable<VoiceUploadResponse['command']> & {
+    product_id: number
+    product_name: string
+    quantity: number
+    type: 'incoming' | 'outgoing'
+} {
+    return (
+        !command.error
+        && (command.type === 'incoming' || command.type === 'outgoing')
+        && typeof command.product_id === 'number'
+        && command.product_id > 0
+        && typeof command.quantity === 'number'
+        && command.quantity > 0
+    )
+}
+
+function handleVoiceResult(
+    result: VoiceUploadResponse,
+    t: (key: string, opts?: Record<string, unknown>) => string,
+    callbacks: {
+        onNavigate?: (command: NonNullable<VoiceUploadResponse['command']>) => void
+        onStockPending?: (pending: PendingVoiceStock) => void
+    },
+) {
     const command = result.command
     if (!command?.parsed) {
         if (result.text) {
             alert(t('voice.commandNotUnderstood', { text: result.text }))
         }
+        return
+    }
+
+    if (command.type === 'navigate' && command.action === 'create_product') {
+        callbacks.onNavigate?.(command)
         return
     }
 
@@ -39,30 +79,63 @@ function showVoiceResult(result: VoiceUploadResponse, t: (key: string, opts?: Re
         return
     }
 
-    const product = command.product_name ?? ''
-    const quantity = command.quantity ?? 0
-
-    if (command.type === 'outgoing') {
-        alert(t('voice.outgoingSuccess', { product, quantity }))
-    } else {
-        alert(t('voice.incomingSuccess', { product, quantity }))
+    if (isStockCommand(command)) {
+        callbacks.onStockPending?.({
+            productId: command.product_id,
+            productName: command.product_name ?? '',
+            quantity: command.quantity,
+            type: command.type,
+            sourceText: result.text,
+        })
+        return
     }
 }
 
 export function useVoiceRecorder() {
     const { t } = useTranslation()
+    const navigate = useNavigate()
+    const location = useLocation()
     const streamRef = useRef<MediaStream | null>(null)
     const recorderRef = useRef<MediaRecorder | null>(null)
     const chunksRef = useRef<Blob[]>([])
     const mimeTypeRef = useRef('')
     const [recording, setRecording] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [pendingStock, setPendingStock] = useState<PendingVoiceStock | null>(null)
+    const [confirming, setConfirming] = useState(false)
 
     const cleanupStream = useCallback(() => {
         streamRef.current?.getTracks().forEach(track => track.stop())
         streamRef.current = null
         recorderRef.current = null
     }, [])
+
+    const cancelStockConfirm = useCallback(() => {
+        if (confirming) return
+        setPendingStock(null)
+    }, [confirming])
+
+    const confirmStock = useCallback(async (quantity: number) => {
+        if (!pendingStock || confirming || quantity <= 0) return
+
+        setConfirming(true)
+        try {
+            await apiClient.createStockMovement({
+                product_id: pendingStock.productId,
+                type: pendingStock.type,
+                quantity,
+                description: pendingStock.sourceText
+                    ? `voice: ${pendingStock.sourceText}`
+                    : 'voice',
+            })
+
+            setPendingStock(null)
+        } catch (e) {
+            alert(e instanceof Error ? e.message : t('voice.commandError', { error: '' }))
+        } finally {
+            setConfirming(false)
+        }
+    }, [confirming, pendingStock, t])
 
     const start = useCallback(async () => {
         try {
@@ -131,7 +204,18 @@ export function useVoiceRecorder() {
                 blob,
                 filenameForMimeType(mimeTypeRef.current),
             )
-            showVoiceResult(result, t)
+            handleVoiceResult(result, t, {
+                onNavigate: (command) => {
+                    if (command.action === 'create_product') {
+                        openProductCreateFromVoice(
+                            navigate,
+                            location.pathname,
+                            command.product_name,
+                        )
+                    }
+                },
+                onStockPending: setPendingStock,
+            })
         } catch (e) {
             console.error('Failed to stop recording:', e)
             const code = e instanceof Error ? e.message : ''
@@ -149,16 +233,24 @@ export function useVoiceRecorder() {
         } finally {
             setLoading(false)
         }
-    }, [cleanupStream, t])
+    }, [cleanupStream, location.pathname, navigate, t])
 
     const toggle = useCallback(async () => {
-        if (loading) return
+        if (loading || confirming) return
         if (recording) {
             await stop()
         } else {
             await start()
         }
-    }, [loading, recording, start, stop])
+    }, [confirming, loading, recording, start, stop])
 
-    return { recording, loading, toggle }
+    return {
+        recording,
+        loading,
+        toggle,
+        pendingStock,
+        confirming,
+        confirmStock,
+        cancelStockConfirm,
+    }
 }

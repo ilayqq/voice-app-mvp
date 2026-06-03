@@ -16,7 +16,8 @@
   },
   "employees": {
     "title": "Employees",
-    "subtitle": "Add warehouse staff and assign roles",
+    "subtitle": "Add by phone number — the user must already be registered in the app",
+    "phoneHint": "No new account is created. The person must have signed up already.",
     "addButton": "+ Add employee",
     "cancelAdd": "Cancel",
     "namePlaceholder": "Employee name",
@@ -35,6 +36,7 @@
     "removeError": "Failed to remove employee"
   },
   "nav": {
+    "back": "Back",
     "warehouse": "Warehouse",
     "products": "Products",
     "record": "Voice",
@@ -54,9 +56,16 @@
     "apiKeyError": "Invalid OpenAI API key on the server. Check the API_KEY environment variable.",
     "whisperError": "Local speech recognition is unavailable. Ensure Python, ffmpeg, and openai-whisper are installed on the server.",
     "recognized": "Recognized text: {{text}}",
+    "confirmIncomingTitle": "Confirm stock in",
+    "confirmOutgoingTitle": "Confirm stock out",
+    "confirmProductLabel": "Product",
+    "confirmQuantityLabel": "Quantity (pcs)",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
     "incomingSuccess": "Stock in: {{product}} +{{quantity}} pcs",
     "outgoingSuccess": "Stock out: {{product}} −{{quantity}} pcs",
     "productNotFound": "Product \"{{product}}\" not found. Add it to the catalog first.",
+    "createProductNav": "Opening product creation",
     "commandNotUnderstood": "Command not recognized: {{text}}",
     "commandError": "Could not execute command: {{error}}"
   },
@@ -76,6 +85,16 @@
     "incomingStock": "Stock in",
     "outgoingStock": "Stock out",
     "newProduct": "New product",
+    "topProducts": "Top products by revenue",
+    "topProductsHint": "Based on stock-out (sales) for the selected period: price × quantity",
+    "topProductsEmpty": "No sales with revenue in this period",
+    "topProductsSold": "Sold: {{count}} pcs",
+    "period": {
+      "today": "Today",
+      "week": "7 days",
+      "month": "Month",
+      "all": "All time"
+    },
     "recentOperations": "Recent operations",
     "noOperations": "No operations yet",
     "incomingLabel": "Stock in",

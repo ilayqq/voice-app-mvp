@@ -16,7 +16,7 @@ import (
 	"voice-app/internal/user"
 	"voice-app/internal/warehouse"
 
-	"github.com/joho/godotenv"
+	// "github.com/joho/godotenv"
 )
 
 //	@title			Voice-app API
@@ -29,9 +29,9 @@ import (
 // @in							header
 // @name						Authorization
 func main() {
-	if err := godotenv.Load(".env"); err != nil {
-		log.Println("Warning: .env file not found, using system env vars")
-	}
+	// if err := godotenv.Load(".env"); err != nil {
+	// 	log.Println("Warning: .env file not found, using system env vars")
+	// }
 
 	if err := os.MkdirAll("uploads/products", 0755); err != nil {
 		log.Fatalf("Failed to create uploads dir: %s", err)
@@ -68,7 +68,7 @@ func main() {
 	stockMovementService := stockmovement.NewService(stockMovementRepo)
 	stockMovementHandler := stockmovement.NewHandler(stockMovementService)
 
-	speechService := speech.NewService(productService, stockMovementService)
+	speechService := speech.NewService(productService)
 	speechHandler := speech.NewHandler(speechService)
 
 	analyticsRepo := analytics.NewRepository()

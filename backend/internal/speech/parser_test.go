@@ -100,3 +100,35 @@ func TestParseVoiceCommandNotParsed(t *testing.T) {
 		t.Fatalf("expected unparsed command")
 	}
 }
+
+func TestParseVoiceCommandCreateProduct(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		wantName string
+	}{
+		{name: "russian create product", input: "Создай товар", wantName: ""},
+		{name: "russian create product with name", input: "Создай товар молоко", wantName: "Молоко"},
+		{name: "russian new product", input: "Новый товар", wantName: ""},
+		{name: "english create product", input: "Create product water", wantName: "Water"},
+		{name: "kazakh new product", input: "Жаңа тауар сүт", wantName: "Сүт"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ParseVoiceCommand(tt.input)
+			if !got.Parsed {
+				t.Fatalf("expected parsed command")
+			}
+			if got.Type != "navigate" {
+				t.Fatalf("type = %q, want navigate", got.Type)
+			}
+			if got.Action != "create_product" {
+				t.Fatalf("action = %q, want create_product", got.Action)
+			}
+			if got.ProductName != tt.wantName {
+				t.Fatalf("product = %q, want %q", got.ProductName, tt.wantName)
+			}
+		})
+	}
+}

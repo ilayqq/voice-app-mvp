@@ -17,8 +17,6 @@ export default function Employees() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState<AddEmployeeRequest>({
     phone_number: '',
-    password: '',
-    full_name: '',
     role: 'employee',
   })
   const [saving, setSaving] = useState(false)
@@ -52,7 +50,7 @@ export default function Employees() {
     setError('')
     try {
       await apiClient.addEmployee(form)
-      setForm({ phone_number: '', password: '', full_name: '', role: 'employee' })
+      setForm({ phone_number: '', role: 'employee' })
       setShowForm(false)
       await load()
     } catch (err: unknown) {
@@ -110,28 +108,13 @@ export default function Employees() {
 
           {showForm && (
             <form onSubmit={handleAdd} className="rounded-xl bg-white/10 ring-1 ring-white/20 p-5 space-y-3">
-              <input
-                type="text"
-                placeholder={t('employees.namePlaceholder')}
-                value={form.full_name}
-                onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-                className="w-full rounded-xl bg-white/5 ring-1 ring-white/15 px-4 py-3 text-sm"
-              />
+              <p className="text-sm text-gray-400">{t('employees.phoneHint')}</p>
               <input
                 type="tel"
                 required
                 placeholder={t('login.phone_placeholder') + ' *'}
                 value={form.phone_number}
                 onChange={e => setForm(f => ({ ...f, phone_number: e.target.value }))}
-                className="w-full rounded-xl bg-white/5 ring-1 ring-white/15 px-4 py-3 text-sm"
-              />
-              <input
-                type="password"
-                required
-                minLength={6}
-                placeholder={t('login.password_placeholder') + ' *'}
-                value={form.password}
-                onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
                 className="w-full rounded-xl bg-white/5 ring-1 ring-white/15 px-4 py-3 text-sm"
               />
               <select
